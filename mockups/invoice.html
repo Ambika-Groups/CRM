@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#F5F5F5">
+<title>Bill preview · Ambika Group CRM (mockup)</title>
+<script>(function(){var t=null;try{var q=new URLSearchParams(location.search).get('theme');t=(q==='light'||q==='dark')?q:localStorage.getItem('ag-theme');}catch(e){}if(t!=='light'&&t!=='dark'){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',t);})();</script>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<script src="mockup.js" defer></script>
+<style>
+  .preview-layout { display: grid; gap: var(--space-4); align-items: start; }
+  @media (min-width: 1440px) { .preview-layout { grid-template-columns: minmax(0, 1fr) 320px; } }
+  @media (min-width: 600px) and (max-width: 1439px) { .preview-layout > aside { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); } }
+  .paper-frame { background: var(--color-page); border: 1px solid var(--color-divider); padding: var(--space-2); overflow-x: auto; }
+  @media (min-width: 600px) { .paper-frame { padding: var(--space-6); } }
+
+  /* The document itself: A4, always light (design-tokens §7). Fixed colours, not theme tokens. */
+  .paper { position: relative; max-width: 794px; min-width: 320px; margin: 0 auto; background: #FFFFFF; color: #1F1F1F;
+    padding: 28px 22px; font-size: 12px; line-height: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+  @media (min-width: 600px) { .paper { padding: 48px 44px; font-size: 13px; line-height: 19px; } }
+  .paper .muted { color: #5F5F5F; }
+  .paper .rule { height: 3px; background: #C62828; margin: 0 0 20px; }
+  .doc-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; }
+  .doc-co { display: flex; gap: 12px; }
+  .doc-co .ag { display: grid; place-items: center; width: 44px; height: 44px; background: #C62828; color: #FFFFFF; font-weight: 600; font-size: 16px; flex: none; }
+  .doc-co b { font-size: 16px; line-height: 22px; font-weight: 600; }
+  .doc-title { text-align: right; }
+  .doc-title h2 { font-size: 18px; line-height: 24px; font-weight: 600; letter-spacing: 0.02em; }
+  .doc-title dl { display: grid; grid-template-columns: auto auto; gap: 2px 12px; margin: 8px 0 0; justify-content: end; }
+  .doc-title dt { color: #5F5F5F; } .doc-title dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .parties { display: grid; gap: 16px; margin: 24px 0; padding: 16px 0; border-top: 1px solid #E0E0E0; border-bottom: 1px solid #E0E0E0; }
+  @media (min-width: 600px) { .parties { grid-template-columns: 1fr 1fr; } }
+  .parties h3 { font-size: 11px; line-height: 16px; letter-spacing: 0.06em; text-transform: uppercase; color: #5F5F5F; font-weight: 500; margin-bottom: 4px; }
+  .items-wrap { overflow-x: auto; }
+  table.items { width: 100%; min-width: 560px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  table.items th { text-align: left; font-weight: 500; color: #5F5F5F; padding: 6px 6px; border-bottom: 1px solid #1F1F1F; font-size: 11px; white-space: nowrap; }
+  table.items td { padding: 8px 6px; border-bottom: 1px solid #E0E0E0; vertical-align: top; }
+  table.items td:nth-child(2) { min-width: 200px; }
+  table.items .r { text-align: right; white-space: nowrap; }
+  .totals { display: grid; gap: 16px; margin-top: 16px; }
+  @media (min-width: 600px) { .totals { grid-template-columns: 1fr 300px; } }
+  .totals dl { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; margin: 0; font-variant-numeric: tabular-nums; }
+  .totals dd { margin: 0; text-align: right; white-space: nowrap; }
+  .totals .grand { padding: 8px 0; margin: 4px 0; border-top: 1px solid #1F1F1F; border-bottom: 3px solid #C62828; font-weight: 600; font-size: 14px; }
+  .totals .net { font-weight: 600; padding-top: 6px; border-top: 1px solid #E0E0E0; }
+  .words { padding: 8px 0; }
+  .doc-foot { display: grid; gap: 16px; margin-top: 28px; padding-top: 16px; border-top: 1px solid #E0E0E0; }
+  @media (min-width: 600px) { .doc-foot { grid-template-columns: 1fr auto auto; } }
+  .qr { width: 84px; height: 84px; border: 1px solid #1F1F1F;
+    background: repeating-linear-gradient(90deg, #1F1F1F 0 4px, transparent 4px 9px), repeating-linear-gradient(0deg, transparent 0 5px, #FFFFFF 5px 8px); }
+  .sign { text-align: right; align-self: end; }
+  .sign .line { margin-top: 36px; border-top: 1px solid #1F1F1F; padding-top: 4px; }
+  .watermark { position: absolute; top: 38%; left: 50%; transform: translate(-50%, -50%) rotate(-24deg); font-size: 96px; line-height: 1;
+    font-weight: 600; color: transparent; -webkit-text-stroke: 2px rgba(198, 40, 40, 0.28); pointer-events: none; letter-spacing: 0.08em; }
+  .pageno { margin-top: 20px; text-align: center; color: #5F5F5F; font-size: 11px; }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+  .steps li { display: flex; gap: var(--space-3); align-items: center; font-size: var(--text-small); color: var(--color-text-secondary); }
+  .steps li .dot { width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid var(--color-input-border); flex: none; }
+  .steps li.done, .steps li.now { color: var(--color-text); }
+  .steps li.now .dot { border-color: var(--color-brand); color: var(--color-brand); box-shadow: inset 0 0 0 2px var(--color-surface), inset 0 0 0 12px var(--color-selected); }
+</style>
+</head>
+<body data-page="bills" data-title="Bill preview" data-crumbs="Quotes &amp; bills|Bills|Draft bill" data-role="owner" class="has-action-bar">
+
+<main class="content">
+  <div class="page-head stack">
+    <div class="heading">
+      <span class="sample-tag">Sample data</span>
+      <h1>Running bill 3, Shiv Nagar CC Road</h1>
+      <p class="sub">To Nagar Nigam Lucknow · <span class="badge neutral"><span data-icon="file"></span>Draft</span> · gets its bill number when you send it</p>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-secondary" type="button"><span data-icon="download"></span>Download PDF</button>
+      <button class="btn btn-secondary" type="button"><span data-icon="printer"></span>Print</button>
+      <div class="action-bar">
+        <button class="btn btn-primary" type="button" data-open="confirm-send"><span data-icon="message"></span>Send on WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview-layout">
+    <div class="paper-frame">
+      <article class="paper" aria-label="Bill preview, A4">
+        <div class="watermark" aria-hidden="true">DRAFT</div>
+        <div class="rule"></div>
+        <header class="doc-head">
+          <div class="doc-co">
+            <span class="ag">AG</span>
+            <div><b>Ambika Group</b>
+              <div class="muted">[Registered address to be confirmed], Lucknow, Uttar Pradesh<br>GSTIN 09ABCDE1234F1Z5 (sample) · +91 98390 00000</div></div>
+          </div>
+          <div class="doc-title">
+            <h2>TAX INVOICE</h2>
+            <div class="muted">Running (RA) bill 3</div>
+            <dl><dt>Bill no.</dt><dd><i>Given when sent</i></dd><dt>Date</dt><dd>25 Oct 2026</dd><dt>Due</dt><dd>24 Nov 2026</dd></dl>
+          </div>
+        </header>
+
+        <section class="parties">
+          <div><h3>Billed to</h3><b>Nagar Nigam Lucknow</b><div class="muted">Lalbagh, Lucknow 226001, Uttar Pradesh<br>GSTIN 09LKNN00000X1DX (sample)<br>Place of supply: Uttar Pradesh (09)</div></div>
+          <div><h3>Project / site</h3><b>Shiv Nagar CC Road</b><div class="muted">Work order WO/NN/2026/118 dated 12 May 2026<br>Work measured 1 Oct to 20 Oct 2026 (MB pages 41–48)</div></div>
+        </section>
+
+        <div class="items-wrap">
+          <table class="items">
+            <thead><tr><th>#</th><th>Item</th><th>SAC</th><th class="r">Qty</th><th>Unit</th><th class="r">Rate (₹)</th><th class="r">Taxable (₹)</th><th class="r">CGST 9%</th><th class="r">SGST 9%</th></tr></thead>
+            <tbody id="items"></tbody>
+          </table>
+        </div>
+
+        <div class="totals">
+          <div class="words"><span class="muted">Amount in words</span><br><b id="words">Rupees Thirty-Eight Lakh Eighty-Seven Thousand Five Hundred Ten Only</b></div>
+          <dl id="totals"></dl>
+        </div>
+
+        <footer class="doc-foot">
+          <div><b>Pay to</b><div class="muted">State Bank of India, Hazratganj branch<br>A/c no. ending 4821 · IFSC SBIN000XXXX (sample)<br>Payment due 30 days after the bill is passed.<br>Thank you for your business.</div></div>
+          <!-- UPI QR is printed only on bills to private clients (client type individual or builder). Government departments pay through their own treasury systems. -->
+          <div></div>
+          <div class="sign">For Ambika Group<div class="line">Authorised signatory</div></div>
+        </footer>
+        <div class="pageno">Page 1 of 1</div>
+      </article>
+    </div>
+
+    <aside class="grid">
+      <section class="card">
+        <h2 class="card-title">Where this bill is</h2>
+        <ol class="steps">
+          <li class="now"><span class="dot"><span data-icon="edit" data-icon-class="icon-sm"></span></span>Draft: check it, then send</li>
+          <li><span class="dot"></span>Sent to the client</li>
+          <li><span class="dot"></span>Part paid</li>
+          <li><span class="dot"></span>Paid</li>
+        </ol>
+      </section>
+      <section class="card">
+        <h2 class="card-title">Payment details</h2>
+        <p class="small muted">Nagar Nigam pays through its treasury system, so this bill shows bank details only. Bills to private clients also carry a UPI QR code.</p>
+      </section>
+      <section class="card">
+        <h2 class="card-title">Deductions on this bill</h2>
+        <p class="small muted">The department keeps these back from the payment. They are tracked so they aren't lost.</p>
+        <p class="hint"><span data-icon="info"></span><span><span class="term">TDS</span>: tax deducted from a payment and paid to the government. <span class="term">Retention</span>: part of the bill held back until the work is cleared.</span></p>
+      </section>
+      <section class="card">
+        <h2 class="card-title">Shared</h2>
+        <div class="empty" style="padding:var(--space-4)">
+          <span data-icon="message"></span>
+          <b>Not shared yet.</b>
+          <p class="small">Each time you send this bill, it's listed here: who sent it, when, and to which number.</p>
+        </div>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<div class="scrim" id="confirm-send" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="cs-title">
+    <h2 id="cs-title">Send this ₹38,87,510 bill to Nagar Nigam Lucknow on WhatsApp?</h2>
+    <p>It gets the next bill number when you send it. After that the bill is final and can't be edited. Any change will need a credit note. WhatsApp opens with a message and a secure link to the PDF that works for 30 days.</p>
+    <div class="dialog-actions">
+      <button class="btn btn-secondary" type="button" data-close="confirm-send">Go back</button>
+      <button class="btn btn-primary" type="button" data-close="confirm-send"><span data-icon="message"></span>Send on WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<script>
+window.agPage = function () {
+  // Per-line GST, half-up to the paisa; totals are sums of lines (decisions D-15). Amounts in paise.
+  var items = [
+    ["Wet mix macadam (WMM) base course, 150 mm, laid and compacted", "995421", 420000, "cum", 185000],
+    ["Plain cement concrete M15 below pavement", "995421", 96500, "cum", 540000],
+    ["Cement concrete pavement M30, 200 mm thick", "995421", 248000, "cum", 725000],
+    ["Kerb stone, supplied and fixed", "995421", 640000, "rmt", 31000]
+  ];
+  function mulDivRound(a, b, c) { return Number((BigInt(a) * BigInt(b) * 2n + BigInt(c)) / (2n * BigInt(c))); }
+  function rs(p) { return agMoney(p / 100, { paise: true }).replace("₹", ""); }
+  var tax = 0, cg = 0, sg = 0;
+  document.getElementById("items").innerHTML = items.map(function (it, i) {
+    var taxable = mulDivRound(it[2], it[4], 1000);
+    var c = mulDivRound(taxable, 1800, 20000), s = mulDivRound(taxable, 1800, 20000);
+    tax += taxable; cg += c; sg += s;
+    return "<tr><td>" + (i + 1) + "</td><td>" + it[0] + "</td><td>" + it[1] + '</td><td class="r">' + (it[2] / 1000).toFixed(3) +
+      "</td><td>" + it[3] + '</td><td class="r">' + rs(it[4]) + '</td><td class="r">' + rs(taxable) + '</td><td class="r">' + rs(c) + '</td><td class="r">' + rs(s) + "</td></tr>";
+  }).join("");
+  var gross = tax + cg + sg;
+  var grand = Math.round(gross / 100) * 100, roundOff = grand - gross;
+  var ded = [["TDS, income tax (2%)", 200], ["GST-TDS (2%)", 200], ["Labour cess (1%)", 100], ["Retention (5%)", 500]].map(function (d) {
+    return [d[0], mulDivRound(tax, d[1], 10000 * 100) * 100]; // rounded half-up to the rupee
+  });
+  var dedTotal = ded.reduce(function (s, d) { return s + d[1]; }, 0);
+  document.getElementById("totals").innerHTML =
+    "<dt>Taxable value</dt><dd>" + rs(tax) + "</dd><dt>CGST 9%</dt><dd>" + rs(cg) + "</dd><dt>SGST 9%</dt><dd>" + rs(sg) + "</dd>" +
+    "<dt>Round off</dt><dd>" + rs(roundOff) + '</dd><dt class="grand">Bill total</dt><dd class="grand">₹' + rs(grand) + "</dd>" +
+    ded.map(function (d) { return '<dt class="muted">Less ' + d[0] + '</dt><dd class="muted">−' + rs(d[1]) + "</dd>"; }).join("") +
+    '<dt class="net">Net payable to Ambika Group</dt><dd class="net">₹' + rs(grand - dedTotal) + "</dd>";
+};
+</script>
+</body>
+</html>

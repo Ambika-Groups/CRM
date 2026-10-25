@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#F5F5F5">
+<title>Mark attendance · Ambika Group CRM (mockup)</title>
+<script>(function(){var t=null;try{var q=new URLSearchParams(location.search).get('theme');t=(q==='light'||q==='dark')?q:localStorage.getItem('ag-theme');}catch(e){}if(t!=='light'&&t!=='dark'){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',t);})();</script>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<script src="mockup.js" defer></script>
+<style>
+  .att { max-width: 760px; }
+  .day-row { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-bottom: var(--space-4); }
+  .day-row .btn { flex: 1 1 auto; justify-content: space-between; }
+  .counts { position: sticky; top: var(--topbar-h); z-index: 5; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+    background: var(--color-surface); border: 1px solid var(--color-divider); margin-bottom: var(--space-3); }
+  .counts div { padding: var(--space-2); text-align: center; border-left: 1px solid var(--color-divider); }
+  .counts div:first-child { border-left: 0; }
+  .counts b { display: block; font-size: var(--text-title-s); line-height: var(--leading-title-s); font-variant-numeric: tabular-nums; }
+  .counts span { font-size: var(--text-caption); color: var(--color-text-secondary); }
+  .all-present { margin-bottom: var(--space-3); }
+  .group-head { display: flex; justify-content: space-between; gap: var(--space-2); padding: var(--space-3) 0 var(--space-2);
+    font-size: var(--text-small); font-weight: var(--weight-label); color: var(--color-text-secondary); }
+  .workers { list-style: none; margin: 0; padding: 0; background: var(--color-surface); border: 1px solid var(--color-divider); }
+  .worker { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: var(--space-2) var(--space-3); align-items: center;
+    padding: var(--space-2) var(--space-3); border-top: 1px solid var(--color-divider); }
+  .worker:first-child { border-top: 0; }
+  .worker .avatar { width: 36px; height: 36px; }
+  .worker .nm { min-width: 0; }
+  .worker .nm b { display: block; font-weight: var(--weight-label); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .worker .nm span { display: block; font-size: var(--text-caption); line-height: var(--leading-caption); color: var(--color-text-secondary); }
+  .worker .extra { grid-column: 2 / -1; display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  .mark { display: grid; grid-template-columns: repeat(3, 56px); border: 1px solid var(--color-input-border); }
+  .mark button { height: 48px; border: 0; border-left: 1px solid var(--color-input-border); background: var(--color-surface); cursor: pointer;
+    font-size: var(--text-caption); font-weight: var(--weight-label); color: var(--color-text-secondary); padding: 0 2px; }
+  .mark button:first-child { border-left: 0; }
+  .mark button[aria-checked="true"].p { background: var(--color-selected); color: var(--color-text); box-shadow: inset 0 -3px 0 var(--color-success); }
+  .mark button[aria-checked="true"].h { background: var(--color-selected); color: var(--color-text); box-shadow: inset 0 -3px 0 var(--color-warning); }
+  .mark button[aria-checked="true"].a { background: var(--color-selected); color: var(--color-text); box-shadow: inset 0 -3px 0 var(--color-error); }
+  .mark button .icon { width: 16px; height: 16px; margin: 0 auto 2px; }
+  /* Phones: name on the first line, the three choices full width underneath (one tap each, 48 px tall). */
+  @media (max-width: 599px) {
+    .worker { grid-template-columns: 36px minmax(0, 1fr); }
+    .worker .mark { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .worker .mark button { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: var(--text-small); }
+    .worker .mark button .icon { margin: 0; }
+    .worker .extra { grid-column: 1 / -1; }
+  }
+  @media (min-width: 600px) { .mark { grid-template-columns: repeat(3, 76px); } .mark button { font-size: var(--text-small); } }
+  .more-row { padding: var(--space-3); border-top: 1px solid var(--color-divider); font-size: var(--text-small); }
+  .tap-guide ol { margin: var(--space-1) 0 0; padding-left: var(--space-5); }
+</style>
+</head>
+<body data-page="labour" data-title="Mark attendance" data-crumbs="Workers &amp; attendance|Mark attendance" data-role="supervisor" class="has-action-bar">
+
+<div class="offline-strip" role="status" data-before-content><span data-icon="wifi-off"></span><span>You're offline. Attendance is saved on this phone and will sync when you're back online.</span></div>
+
+<main class="content">
+  <div class="att">
+    <span class="sample-tag">Sample data</span>
+    <h1 style="font-size:var(--text-title-l);line-height:var(--leading-title-l)">Shiv Nagar CC Road</h1>
+    <p class="muted" style="margin-bottom:var(--space-4)">31 workers on this site's list</p>
+
+    <div class="day-row">
+      <button class="btn btn-secondary" type="button"><span data-icon="calendar"></span>Today, Sat 25 Oct 2026<span data-icon="chevron-down" data-icon-class="icon-sm"></span></button>
+    </div>
+
+    <div class="annotation tap-guide" style="margin-bottom:var(--space-3)"><span data-icon="info"></span>
+      <div><b>Mockup note: three taps or fewer per worker.</b>
+        <ol><li>"Mark all present": 1 tap for the whole site.</li><li>Tap Half or Absent for the few exceptions: 1 tap each.</li><li>"Save attendance": 1 tap.</li></ol>
+        Overtime and leave are one extra tap on the worker's name.</div></div>
+
+    <button class="btn btn-secondary btn-block all-present" type="button"><span data-icon="check"></span>Mark all present</button>
+
+    <div class="counts" aria-live="polite">
+      <div><b id="c-p">28</b><span>Present</span></div>
+      <div><b id="c-h">1</b><span>Half day</span></div>
+      <div><b id="c-a">2</b><span>Absent</span></div>
+      <div><b>1</b><span>Overtime</span></div>
+    </div>
+
+    <div class="group-head"><span>Direct workers</span><span>8</span></div>
+    <ul class="workers" id="direct"></ul>
+
+    <div class="group-head"><span>Thekedar: Mohan Lal</span><span>23</span></div>
+    <ul class="workers" id="thekedar"></ul>
+
+    <p class="hint" style="margin-top:var(--space-4)"><span data-icon="lock"></span>You can change today's attendance for 3 days. After that, ask the owner to reopen it.</p>
+    <div class="action-bar" style="margin-top:var(--space-4)">
+      <button class="btn btn-primary" type="button" data-open="saved"><span data-icon="check"></span>Save attendance (31)</button>
+    </div>
+  </div>
+</main>
+
+
+<div class="toast floating" id="saved" role="status" hidden><span data-icon="check-circle"></span>
+  <span>Attendance saved for 31 workers. It will sync when you're back online.</span>
+  <button class="icon-btn" type="button" aria-label="Close" data-close="saved" style="margin-left:auto;width:32px;height:32px"><span data-icon="x"></span></button></div>
+
+<script>
+window.agPage = function () {
+  var direct = [
+    ["SP", "Suresh Pal", "Mistri · daily", "p"],
+    ["RV", "Rajkumar Verma", "Mistri · daily", "p", "Overtime 2 h"],
+    ["RK", "Ramesh Kumar", "Labour · daily", "a"],
+    ["SD", "Sunita Devi", "Labour · daily", "p"],
+    ["AY", "Ajay Yadav", "Labour · daily", "h"],
+    ["रा", '<span class="hi">राजू निषाद</span>', "Helper · daily", "p"],
+    ["MS", "Mohd. Salim", "JCB operator · monthly", "p"],
+    ["PR", "Pappu Rawat", "Labour · daily", "a"]
+  ];
+  var thekedar = [
+    ["KP", "Kallu Prajapati", "Labour · through thekedar", "p"],
+    ["SB", "Shyam Babu", "Labour · through thekedar", "p"],
+    ["MK", "Meena Kumari", "Labour · through thekedar", "p"]
+  ];
+  function row(w) {
+    var opts = [["p", "Present", "check"], ["h", "Half", "clock"], ["a", "Absent", "x"]];
+    return '<li class="worker"><span class="avatar">' + w[0] + '</span><button class="nm" type="button" style="border:0;background:none;text-align:left;padding:0;cursor:pointer" aria-label="More options for this worker"><b>' + w[1] + "</b><span>" + w[2] + "</span></button>" +
+      '<div class="mark" role="radiogroup" aria-label="Attendance">' + opts.map(function (o) {
+        return '<button type="button" role="radio" class="' + o[0] + '" aria-checked="' + (w[3] === o[0]) + '"><span data-icon="' + o[2] + '"></span>' + o[1] + "</button>";
+      }).join("") + "</div>" + (w[4] ? '<div class="extra"><span class="badge neutral"><span data-icon="clock"></span>' + w[4] + "</span></div>" : "") + "</li>";
+  }
+  document.getElementById("direct").innerHTML = direct.map(row).join("");
+  document.getElementById("thekedar").innerHTML = thekedar.map(row).join("") +
+    '<li class="more-row"><button class="btn btn-text" type="button">Show 20 more (all present)<span data-icon="chevron-down" data-icon-class="icon-sm"></span></button></li>';
+
+  // One tap changes a worker's status; the counters follow.
+  document.querySelectorAll(".mark").forEach(function (g) {
+    g.addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      g.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-checked", x === b ? "true" : "false"); });
+      var c = { p: 20, h: 0, a: 0 };
+      document.querySelectorAll('.mark [aria-checked="true"]').forEach(function (x) { c[x.className]++; });
+      document.getElementById("c-p").textContent = c.p; document.getElementById("c-h").textContent = c.h; document.getElementById("c-a").textContent = c.a;
+    });
+  });
+};
+</script>
+</body>
+</html>

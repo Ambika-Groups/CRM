@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#F5F5F5">
+<title>Shiv Nagar CC Road · Ambika Group CRM (mockup)</title>
+<script>(function(){var t=null;try{var q=new URLSearchParams(location.search).get('theme');t=(q==='light'||q==='dark')?q:localStorage.getItem('ag-theme');}catch(e){}if(t!=='light'&&t!=='dark'){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',t);})();</script>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<script src="mockup.js" defer></script>
+<style>
+  .facts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin-top: var(--space-2); font-size: var(--text-small); color: var(--color-text-secondary); }
+  .facts span { display: inline-flex; align-items: center; gap: 4px; }
+  .facts .icon { width: 16px; height: 16px; }
+  .compare { display: grid; gap: var(--space-4); }
+  .compare .big { font-size: var(--text-title-m); line-height: var(--leading-title-m); font-weight: var(--weight-heading); font-variant-numeric: tabular-nums; }
+  .compare .of { color: var(--color-text-secondary); font-size: var(--text-small); }
+  .ring-row { display: flex; align-items: center; gap: var(--space-4); }
+  .ring-row svg { width: 96px; flex: none; }
+  .workers-mini { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); text-align: center; }
+  .workers-mini b { display: block; font-size: var(--text-title-m); line-height: var(--leading-title-m); font-variant-numeric: tabular-nums; }
+  .workers-mini span { font-size: var(--text-caption); color: var(--color-text-secondary); }
+  .alerts { display: grid; gap: var(--space-2); }
+</style>
+</head>
+<body data-page="projects" data-title="Shiv Nagar CC Road" data-crumbs="Projects|Shiv Nagar CC Road" data-role="owner" class="has-action-bar">
+
+<main class="content">
+  <div class="page-head">
+    <div class="heading">
+      <span class="sample-tag">Sample data</span>
+      <h1>Shiv Nagar CC Road</h1>
+      <div class="facts">
+        <span>AG-P-0003</span>
+        <span><span data-icon="building"></span>Government · Nagar Nigam Lucknow</span>
+        <span><span data-icon="pin"></span>Shiv Nagar, Lucknow</span>
+        <span><span data-icon="calendar"></span>Finish by 31 Jan 2027</span>
+        <span class="badge success"><span data-icon="check-circle"></span>In progress</span>
+      </div>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-secondary" href="attendance.html"><span data-icon="users"></span>Mark attendance</a>
+      <div class="action-bar">
+        <a class="btn btn-primary" href="expenses.html"><span data-icon="plus"></span>Add expense</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project tabs (spec §5.5). Scrolls inside its own strip on small screens. -->
+  <nav class="tabs" aria-label="Project sections">
+    <a href="#" aria-current="page">Overview</a><a href="#">Workers</a><a href="expenses.html">Expenses</a><a href="#">Materials &amp; stock</a>
+    <a href="#">Machines</a><a href="invoice.html">Bills &amp; payments</a><a href="contract.html">Contracts</a><a href="#">Documents</a>
+    <a href="#">Daily reports</a><a href="#">Schedule</a><a href="#">Photos</a><a href="#">Profit &amp; loss</a>
+  </nav>
+
+  <div class="alerts">
+    <div class="banner warning"><span data-icon="alert"></span><span class="text"><b>Bank guarantee expires on 27 Nov 2026.</b> Renew it with the bank before then. The renewal task is assigned to Anil Mishra.<br><span class="muted"><span class="term">Performance guarantee</span>: bank guarantee given to the department; it has an expiry date.</span></span></div>
+    <div class="banner info"><span data-icon="clock"></span><span class="text"><b>3 expenses (₹44,250) are waiting for approval.</b> <a href="expenses.html">Review them</a></span></div>
+  </div>
+
+  <div class="grid grid-3 section" style="margin-top:var(--space-4)">
+    <section class="card">
+      <h2 class="card-title">Budget and spending</h2>
+      <div class="compare">
+        <div><div class="big money">₹86,40,200</div><div class="of">spent of ₹1,48,00,000 budget (58%)</div></div>
+        <div class="bar"><span style="width:58%"></span></div>
+        <dl class="kv small">
+          <dt>Left in budget</dt><dd>₹61,59,800</dd>
+          <dt>Wages due</dt><dd>₹1,12,600</dd>
+        </dl>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Billed and received</h2>
+      <div class="compare">
+        <div><div class="big money">₹78,40,000</div><div class="of">received of ₹1,02,35,000 billed (77%)</div></div>
+        <div class="bar"><span style="width:77%"></span></div>
+        <dl class="kv small">
+          <dt>To receive</dt><dd>₹19,08,700</dd>
+          <dt><span class="term" title="Part of the bill held back by the client until the work is cleared.">Retention</span> held</dt><dd>₹4,86,300</dd>
+        </dl>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Work done</h2>
+      <div class="ring-row">
+        <div id="progress"></div>
+        <div><div class="big" style="font-size:var(--text-title-m);font-weight:600">62%</div><div class="muted small">Measured on 22 Oct 2026, by quantity in the <span class="term" title="Measurement Book: measured quantities of work done.">MB</span></div></div>
+      </div>
+      <p class="hint"><span data-icon="info"></span>MB: Measurement Book, the measured quantities of work done.</p>
+    </section>
+  </div>
+
+  <div class="grid grid-2-1 section" style="margin-top:var(--space-4)">
+    <section class="card">
+      <h2 class="card-title">Recent activity <a class="aside" href="#">See all</a></h2>
+      <ul class="list">
+        <li><span data-icon="users"></span><div class="grow">Attendance marked: 28 present, 1 half day, 2 absent<div class="meta">Ramesh Yadav · today, 9:42 am</div></div></li>
+        <li><span data-icon="receipt"></span><div class="grow">Expense added: Gitti 20 mm, 4 brass, ₹16,800 <span class="badge warning"><span data-icon="clock"></span>Waiting for approval</span><div class="meta">Ramesh Yadav · today, 9:15 am</div></div></li>
+        <li><span data-icon="file"></span><div class="grow"><span class="term" title="Running bill: part-payment bill for work done so far.">RA bill</span> 3 drafted from MB pages 41–48, ₹38,87,510 <span class="badge neutral"><span data-icon="file"></span>Draft, not sent</span><div class="meta">Anil Mishra · 25 Oct 2026 · <a href="invoice.html">Open the draft</a></div></div></li>
+        <li><span data-icon="rupee"></span><div class="grow">Money received for RA bill 2: ₹16,50,000<div class="meta">SBI current account · 22 Oct 2026</div></div></li>
+        <li><span data-icon="truck"></span><div class="grow">JCB 3DX hired: 7.5 hours, diesel 42 litres<div class="meta">Ramesh Yadav · 21 Oct 2026</div></div></li>
+      </ul>
+    </section>
+
+    <div class="grid" style="align-content:start">
+      <section class="card">
+        <h2 class="card-title">Workers today <a class="aside" href="attendance.html">Open</a></h2>
+        <div class="workers-mini">
+          <div><b>28</b><span>Present</span></div>
+          <div><b>1</b><span>Half day</span></div>
+          <div><b>2</b><span>Absent</span></div>
+          <div><b>31</b><span>On site list</span></div>
+        </div>
+        <dl class="kv small" style="margin-top:var(--space-4)">
+          <dt>Mistri</dt><dd>6</dd><dt>Labour</dt><dd>17</dd><dt>Helpers, operators</dt><dd>5</dd><dt>Through thekedar</dt><dd>23 of 28</dd>
+        </dl>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Government details</h2>
+        <dl class="kv small">
+          <dt>Work order</dt><dd>WO/NN/2026/118</dd>
+          <dt>Engineer in charge</dt><dd>Er. S. K. Verma</dd>
+          <dt><span class="term" title="Deposit paid with a tender bid; refunded after the result.">EMD</span></dt><dd>Converted to deposit</dd>
+          <dt><span class="term" title="Extension of time: extra days approved to finish the work.">EOT</span></dt><dd>None applied</dd>
+        </dl>
+        <p class="hint"><span data-icon="info"></span>EMD: deposit paid with the tender bid. EOT: extra days approved to finish the work.</p>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+window.agPage = function () {
+  document.getElementById("progress").innerHTML = agRings([{ r0: 34, r1: 46, segments: [
+    { value: 62, color: "var(--color-text-secondary)", label: "Done 62%" }, { value: 38, color: "var(--color-divider)", label: "Remaining 38%" }] }], 96);
+};
+</script>
+</body>
+</html>

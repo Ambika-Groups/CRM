@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#F5F5F5">
+<title>Expenses · Ambika Group CRM (mockup)</title>
+<script>(function(){var t=null;try{var q=new URLSearchParams(location.search).get('theme');t=(q==='light'||q==='dark')?q:localStorage.getItem('ag-theme');}catch(e){}if(t!=='light'&&t!=='dark'){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',t);})();</script>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<script src="mockup.js" defer></script>
+<style>
+  .total-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-3); margin-top: var(--space-2); }
+  .total-line b { font-size: var(--text-kpi-lg); line-height: var(--leading-kpi-lg); font-weight: var(--weight-heading); font-variant-numeric: tabular-nums; }
+  .filters { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
+  .summary-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); margin-bottom: var(--space-4); }
+  @media (min-width: 600px) { .summary-tabs { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  .stab { display: grid; gap: 2px; padding: var(--space-3); text-align: left; border: 1px solid var(--color-divider); background: var(--color-surface);
+    cursor: pointer; border-top: var(--accent-bar) solid var(--sw); min-height: var(--tap-min-phone); }
+  .stab .n { font-size: var(--text-small); color: var(--color-text-secondary); }
+  .stab .v { font-weight: var(--weight-heading); font-variant-numeric: tabular-nums; }
+  .stab[aria-pressed="true"] { background: var(--color-selected); }
+  .stab[aria-pressed="true"] .n { color: var(--color-brand); }
+  .layout { display: grid; gap: var(--space-4); }
+  @media (min-width: 1024px) { .layout { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+
+  /* Pyramid tree */
+  .tree { list-style: none; margin: 0; padding: 0; }
+  .tree ul { list-style: none; margin: 0; padding: 0; }
+  .node { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto 52px; gap: var(--space-2); align-items: center;
+    min-height: var(--tap-min-phone); padding: 0 var(--space-2); border: 0; border-top: 1px solid var(--color-divider); cursor: pointer; color: var(--color-text);
+    background: none; width: 100%; text-align: left; font-size: var(--text-small); }
+  @media (min-width: 600px) { .node { min-height: 44px; } }
+  .node:hover { background: var(--color-page); }
+  .node[aria-current="true"] { background: var(--color-selected); box-shadow: inset var(--accent-bar) 0 0 var(--color-brand); }
+  .node .nm { min-width: 0; }
+  .node .nm span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .node .share { height: 4px; margin-top: 4px; background: var(--color-divider); }
+  .node .share i { display: block; height: 100%; background: var(--sw, var(--color-text-secondary)); }
+  .node .amt { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .node .pc { font-variant-numeric: tabular-nums; text-align: right; color: var(--color-text-secondary); }
+  .node .chev { color: var(--color-text-secondary); }
+  .lvl-1 > .node { font-weight: var(--weight-label); font-size: var(--text-body); }
+  .lvl-2 > .node { padding-left: calc(var(--space-2) + 16px); }
+  .lvl-3 > .node { padding-left: calc(var(--space-2) + 32px); }
+  .tree-total { display: grid; grid-template-columns: minmax(0, 1fr) auto 52px; gap: var(--space-2); padding: var(--space-3) var(--space-2);
+    font-weight: var(--weight-heading); border-top: 1px solid var(--color-text); }
+
+  .crumb-trail { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); margin-bottom: var(--space-4); font-size: var(--text-small); }
+  .crumb-trail button { border: 0; background: none; padding: var(--space-2) 0; color: var(--color-brand); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+  .chart-box { display: grid; gap: var(--space-4); justify-items: center; }
+  .chart-box .chart-legend { width: 100%; }
+</style>
+</head>
+<body data-page="expenses" data-title="Expenses" data-crumbs="Expenses|Total spending" data-role="owner" class="has-action-bar">
+
+<main class="content">
+  <div class="page-head">
+    <div class="heading">
+      <span class="sample-tag">Sample data</span>
+      <h1>Total spending</h1>
+      <div class="total-line"><b>₹18,42,350</b><span class="muted">All projects · October 2026 · approved expenses, paid and unpaid, including GST</span></div>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-secondary" href="#"><span data-icon="download"></span>Export</a>
+      <div class="action-bar">
+        <button class="btn btn-primary" type="button" data-open="saved-toast"><span data-icon="plus"></span>Add expense</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="filters" aria-label="Filters">
+    <button class="btn btn-secondary btn-sm"><span data-icon="folder"></span>All projects<span data-icon="chevron-down" data-icon-class="icon-sm"></span></button>
+    <button class="btn btn-secondary btn-sm"><span data-icon="calendar"></span>Oct 2026<span data-icon="chevron-down" data-icon-class="icon-sm"></span></button>
+    <button class="btn btn-secondary btn-sm">Paid and unpaid<span data-icon="chevron-down" data-icon-class="icon-sm"></span></button>
+    <button class="btn btn-secondary btn-sm">Any payment mode<span data-icon="chevron-down" data-icon-class="icon-sm"></span></button>
+    <button class="btn btn-secondary btn-sm">Entered by anyone<span data-icon="chevron-down" data-icon-class="icon-sm"></span></button>
+    <button class="btn btn-text btn-sm">Show without GST</button>
+  </div>
+
+  <!-- Quick summary tabs (spec §7.3), in the fixed chart-series order and colours. -->
+  <div class="summary-tabs" id="summary" role="group" aria-label="Summary by head" data-single></div>
+
+  <div class="layout">
+    <section class="card" aria-labelledby="tree-title">
+      <h2 class="card-title" id="tree-title">Breakdown <span class="aside muted">Tap a row to open it</span></h2>
+      <ul class="tree" id="tree"></ul>
+      <div class="tree-total"><span>Total expense</span><span class="money">₹18,42,350</span><span class="right">100%</span></div>
+    </section>
+
+    <section class="card" aria-labelledby="chart-title">
+      <h2 class="card-title" id="chart-title">Materials, by type</h2>
+      <nav class="crumb-trail" aria-label="Chart level"><button type="button">All expenses</button><span data-icon="chevron-right" data-icon-class="icon-sm"></span><span aria-current="true">Materials</span></nav>
+      <div class="chart-box">
+        <div id="chart"></div>
+        <ul class="chart-legend" id="chart-legend"></ul>
+      </div>
+      <p class="hint"><span data-icon="info"></span>Tap a slice to see what's inside it. Use "All expenses" to go back up.</p>
+    </section>
+  </div>
+
+  <section class="section" aria-labelledby="entries-title">
+    <h2 class="section-title" id="entries-title">Gitti (by size): 3 entries, ₹1,64,500 <a href="#">Export this list</a></h2>
+    <div class="banner info" style="margin-bottom:var(--space-3)"><span data-icon="clock"></span>
+      <span class="text">1 more Gitti entry of <b>₹16,800</b> is waiting for approval. It isn't counted in these totals until it's approved.</span></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>What and when</th><th>Paid to</th><th class="num">Amount</th><th>How paid</th><th>Bill</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="card-head" data-label="What"><b>Gitti 20 mm, 18 brass at ₹4,200</b><div class="caption">Shiv Nagar CC Road · 24 Oct 2026</div></td>
+            <td data-label="Paid to">Maa Durga Stone Suppliers</td>
+            <td class="num" data-label="Amount"><span class="money">₹75,600</span></td>
+            <td data-label="How paid">Bank · SBI</td>
+            <td data-label="Bill"><a href="#">MDS/1184</a></td>
+            <td data-label="Status"><span class="badge success"><span data-icon="check-circle"></span>Paid</span></td>
+          </tr>
+          <tr>
+            <td class="card-head" data-label="What"><b>Gitti 40 mm, 12 brass at ₹3,900</b><div class="caption">Shiv Nagar CC Road · 19 Oct 2026</div></td>
+            <td data-label="Paid to">Maa Durga Stone Suppliers</td>
+            <td class="num" data-label="Amount"><span class="money">₹46,800</span></td>
+            <td data-label="How paid">On credit</td>
+            <td data-label="Bill"><a href="#">MDS/1162</a></td>
+            <td data-label="Status"><span class="badge warning"><span data-icon="clock"></span>To pay</span></td>
+          </tr>
+          <tr>
+            <td class="card-head" data-label="What"><b>Gitti 10 mm, 10 brass at ₹4,210</b><div class="caption">Sharma Villa, Indira Nagar · 11 Oct 2026</div></td>
+            <td data-label="Paid to">Tractor owner, local (Raju)</td>
+            <td class="num" data-label="Amount"><span class="money">₹42,100</span></td>
+            <td data-label="How paid">Cash</td>
+            <td data-label="Bill"><span class="muted">No bill: local tractor supplier gives no bill</span></td>
+            <td data-label="Status"><span class="badge success"><span data-icon="check-circle"></span>Paid</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">Commission / brokerage: Sharma Villa</h2>
+    <div class="empty">
+      <span data-icon="receipt"></span>
+      <b>No commission paid on this project yet.</b>
+      <p>Commission and brokerage you pay will appear here with the project and the person paid.</p>
+      <button class="btn btn-secondary" type="button"><span data-icon="plus"></span>Add commission</button>
+    </div>
+  </section>
+</main>
+
+<div class="toast floating" id="saved-toast" role="status" hidden><span data-icon="check-circle"></span><span>Expense saved: ₹16,800 Gitti for Shiv Nagar CC Road. <b>Waiting for approval.</b></span></div>
+
+<script>
+window.agPage = function () {
+  var C = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+  var tree = [
+    { n: "Labour", c: C[0], k: [["Mistri (daily / contract)", 186000], ["Labour (daily / contract)", 294400], ["Helpers, operators, drivers", 72000], ["Thekedar payments", 60000]] },
+    { n: "Materials", c: C[1], open: true, k: [["Cement", 231000], ["Steel (sariya)", 158400],
+      { n: "Aggregate", open: true, k: [["Gitti (by size)", 164500, true], ["Balu (sand)", 92850], ["Stone dust / GSB / WMM", 55000]] },
+      ["Bricks / blocks", 64000], ["Interlocking / paver tiles", 48000], ["Electrical / plumbing / sanitary", 18500], ["Paint, tiles, finishing", 14500]] },
+    { n: "Commission / brokerage", c: C[2], k: [["Brokerage", 45000]] },
+    { n: "Machinery", c: C[3], k: [["Hire charges", 142000], ["Fuel (diesel)", 78600], ["Repair and maintenance", 18000]] },
+    { n: "Other", c: C[4], k: [["Transport and loading", 52400], ["Site overheads", 31200], ["Permits, fees, taxes", 9000], ["Miscellaneous", 7000]] }
+  ];
+  function sum(node) { return node.k.reduce(function (s, x) { return s + (Array.isArray(x) ? x[1] : sum(x)); }, 0); }
+  var total = tree.reduce(function (s, t) { return s + sum(t); }, 0);
+  function pct(v) { return (100 * v / total).toFixed(1) + "%"; }
+
+  function row(name, value, level, opts) {
+    var chev = opts.leaf ? "" : '<span class="chev" data-icon="' + (opts.open ? "chevron-down" : "chevron-right") + '"></span>';
+    return '<button class="node" type="button"' + (opts.current ? ' aria-current="true"' : "") + (opts.leaf ? "" : ' aria-expanded="' + !!opts.open + '"') +
+      ' style="--sw:' + opts.color + '">' + (chev || "<span></span>") +
+      '<span class="nm"><span>' + name + '</span><span class="share"><i style="width:' + (100 * value / total).toFixed(1) + '%"></i></span></span>' +
+      '<span class="amt">' + agMoney(value) + '</span><span class="pc">' + pct(value) + "</span></button>";
+  }
+  function render(node, level, color) {
+    var v = sum(node);
+    var html = '<li class="lvl-' + level + '">' + row(node.n, v, level, { open: node.open, color: color });
+    if (node.open) {
+      html += "<ul>" + node.k.map(function (x) {
+        if (Array.isArray(x)) return '<li class="lvl-' + (level + 1) + '">' + row(x[0], x[1], level + 1, { leaf: true, current: x[2], color: color }) + "</li>";
+        return render(x, level + 1, color);
+      }).join("") + "</ul>";
+    }
+    return html + "</li>";
+  }
+  document.getElementById("tree").innerHTML = tree.map(function (t) { return render(t, 1, t.c); }).join("");
+
+  document.getElementById("summary").innerHTML = tree.map(function (t, i) {
+    var label = ["Labour", "Materials", "Commission", "Machinery", "Other"][i];
+    return '<button class="stab" type="button" aria-pressed="' + (i === 1) + '" style="--sw:' + t.c + '"><span class="n">' + label +
+      '</span><span class="v">' + agMoney(sum(t)) + '</span><span class="caption">' + pct(sum(t)) + "</span></button>";
+  }).join("");
+
+  // Drill-down chart, one level: Materials. Five series max; the smaller heads group as "Other materials".
+  var mats = tree[1];
+  var seg = [["Cement", 231000, C[0]], ["Steel (sariya)", 158400, C[1]], ["Aggregate", sum(mats.k[2]), C[2]], ["Bricks / blocks", 64000, C[3]],
+    ["Other materials", 48000 + 18500 + 14500, C[4]]];
+  var mTotal = sum(mats);
+  document.getElementById("chart").innerHTML = agRings([{ r0: 66, r1: 108, segments: seg.map(function (s) {
+    return { value: s[1], color: s[2], label: s[0] + " " + agMoney(s[1]) };
+  }) }], 236, { top: "Materials", value: agMoney(mTotal), aria: "Materials by type, October 2026" });
+  document.getElementById("chart-legend").innerHTML = seg.map(function (s) {
+    return '<li><span class="sw" style="background:' + s[2] + '"></span><span>' + s[0] + '</span><span class="money">' + agMoney(s[1]) +
+      '</span><span class="pct">' + (100 * s[1] / mTotal).toFixed(1) + "%</span></li>";
+  }).join("") + '<li><span></span><span class="caption">Other materials: paver tiles, electrical and plumbing, paint and finishing</span><span></span><span></span></li>';
+};
+</script>
+</body>
+</html>

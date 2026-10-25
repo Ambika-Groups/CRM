@@ -1,0 +1,28 @@
+@import "tailwindcss";
+/* Design tokens: the single source shared with brand.md (light/dark keyed on [data-theme]). */
+@import "../../../tokens.css";
+@import "../styles/ag.css";
+@import "../styles/app.css";
+@import "../styles/v4.css";
+@import "../styles/dashboard.css";
+
+/* Tailwind theme mapped onto the tokens. Prefixed "ag-" so no utility name shadows a token variable. */
+@theme inline {
+  --color-ag-page: var(--color-page);
+  --color-ag-surface: var(--color-surface);
+  --color-ag-elevated: var(--color-elevated);
+  --color-ag-divider: var(--color-divider);
+  --color-ag-input: var(--color-input-border);
+  --color-ag-text: var(--color-text);
+  --color-ag-muted: var(--color-text-secondary);
+  --color-ag-brand: var(--color-brand);
+  --color-ag-primary: var(--color-primary);
+  --color-ag-on-primary: var(--color-on-primary);
+  --color-ag-selected: var(--color-selected);
+  --color-ag-success: var(--color-success);
+  --color-ag-warning: var(--color-warning);
+  --color-ag-error: var(--color-error);
+  --radius-ag: 12px;
+}
+
+/* Shapes come from the tokens (brand.md v4: pill buttons, 20 px cards, 12 px inputs, 6 px badges), not Tailwind rounded-* utilities. */

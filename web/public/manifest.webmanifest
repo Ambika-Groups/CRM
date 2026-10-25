@@ -1,0 +1,16 @@
+{
+  "name": "Ambika Group CRM",
+  "short_name": "Ambika CRM",
+  "description": "Projects, workers, attendance, expenses, billing and accounts for Ambika Group.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F5F5F5",
+  "theme_color": "#C62828",
+  "lang": "en",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

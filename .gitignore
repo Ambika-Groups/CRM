@@ -1,0 +1,23 @@
+.screenshots/
+node_modules/
+.next/
+out/
+web/out/
+web/.next/
+functions/lib/
+*.log
+.env*.local
+.firebase/
+*.tsbuildinfo
+.netlify/
+firebase-debug*.log
+ui-debug*.log
+firestore-debug*.log
+
+# Secrets: service-account keys and environment files (only .env.example is committed)
+*service-account*.json
+*serviceAccount*.json
+*-adminsdk-*.json
+.env
+.env.*
+!.env.example

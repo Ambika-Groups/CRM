@@ -1,0 +1,974 @@
+rules_version = '2';
+
+// Ambika Group CRM: Firestore Security Rules. DRAFT 4 (M1.3: D-45 money on workers is finance-only; owner unlock;
+// contract measurements, unlocks, check-ins). DRAFT 3 (M1.2: role scope D-42 viewer and D-43 CA; worker rates in
+// workers/{id}/private/pay; a PM reads only workers on their sites). Not yet emulator-tested (CI, M1.6).
+// Source of truth for who sees what: docs/data-model.md §12 (read-access matrix).
+// Decisions referenced as D-xx are in docs/decisions.md; tests in docs/rules-test-matrix.md.
+//
+// Ground rules encoded here:
+//  - Role comes from the custom claim `role`; project access from projects/{id}.assignedUsers (D-05, D-06).
+//  - Clients never write money postings: account_transactions, rollups, finance_rollups, postings,
+//    balances and counters are server-only (D-07, D-08).
+//  - Approvable records, including every source of a generated expense, are created `pending`;
+//    only callables change approval fields (D-30).
+//  - Financial records are never deleted by clients; soft delete via isDeleted (spec §3.1 rule 12).
+//  - Period locks are checked on the month DERIVED FROM `date`, never on a client-supplied monthKey (D-13).
+//  - Money shape checks run on create AND update.
+//  - Wage rates are finance-only to read and to write (rule A, D-32); they live in workers/{id}/private/pay.
+//  - Viewer: project documents and totals only (D-42). CA: accounting records only (D-43).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- identity and roles ----------
+
+    function signedIn() { return request.auth != null && request.auth.token.role is string; }
+    function uid() { return request.auth.uid; }
+    function role() { return request.auth.token.role; }
+    function hasRole(roles) { return signedIn() && role() in roles; }
+
+    function isOwner() { return hasRole(['owner']); }
+    // Write access to finance data.
+    function isFinance() { return hasRole(['owner', 'accountant']); }
+    // Read access to finance data (D-28).
+    // Raw accounting records: owner, accountant and the CA (D-43). Not the viewer (D-42).
+    function isFinanceReader() { return hasRole(['owner', 'accountant', 'ca']); }
+    // Totals (rollups, budget vs spent): also the viewer (D-42).
+    function readsTotals() { return hasRole(['owner', 'accountant', 'viewer', 'ca']); }
+    // Roles that see every project without assignment (D-06).
+    function seesAllProjects() { return hasRole(['owner', 'accountant', 'viewer', 'ca']); }
+    function isSiteRole() { return hasRole(['pm', 'supervisor']); }
+    function isPm() { return hasRole(['pm']); }
+    function isSupervisor() { return hasRole(['supervisor']); }
+    // Internal roles that operate the system (everyone except read-only viewer and CA).
+    function isStaff() { return hasRole(['owner', 'accountant', 'pm', 'supervisor']); }
+
+    // ---------- project membership ----------
+
+    function projectDoc(pid) {
+      return get(/databases/$(database)/documents/projects/$(pid)).data;
+    }
+    // D-21: site roles must pin projectId == X in list queries; this get() is keyed on that value.
+    function assigned(pid) {
+      return pid is string && uid() in projectDoc(pid).assignedUsers;
+    }
+    // Project detail records (roster, BOQ, MB, approvals, EOT, hindrance, DPR): finance and assigned site roles.
+    function canReadProject(pid) {
+      return isFinance() || (isSiteRole() && assigned(pid));
+    }
+    // D-21 fallback, adopted for workers: the 'projects' claim lists the user's assigned project IDs.
+    function claimProjects() { return request.auth.token.get('projects', []); }
+    function siteRoleOn(pid) { return isSiteRole() && assigned(pid); }
+    function pmOn(pid) { return isPm() && assigned(pid); }
+    function onRoster(pid, workerId) {
+      return exists(/databases/$(database)/documents/projects/$(pid)/roster/$(workerId))
+        && get(/databases/$(database)/documents/projects/$(pid)/roster/$(workerId)).data.get('active', true) == true;
+    }
+
+    // ---------- data helpers ----------
+
+    function data() { return request.resource.data; }
+    function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+    function onlyChanges(fields) { return changed().hasOnly(fields); }
+    function untouched(fields) { return !changed().hasAny(fields); }
+    function hasNone(fields) { return !request.resource.data.keys().hasAny(fields); }
+
+    function isMoney(v) { return v is int && v >= 0; }
+    function isPositiveMoney(v) { return v is int && v > 0; }
+    function isQty(v) { return v is int && v >= 0; }
+    function paymentModes() { return ['cash', 'upi', 'bank', 'cheque', 'credit']; }
+
+    // ---------- dates and period locks (fix 1) ----------
+    // A calendar-shaped date; the month and FY are always derived from it.
+    function isDateStr(v) {
+      return v is string && v.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$');
+    }
+    function monthKeyOf(date) {
+      let p = date.split('-');
+      return p[0] + '-' + p[1];
+    }
+    // Indian financial year April–March, formatted "2026-27".
+    function fyOf(date) {
+      let p = date.split('-');
+      let start = int(p[1]) >= 4 ? int(p[0]) : int(p[0]) - 1;
+      let endYY = (start + 1) % 100;
+      return string(start) + '-' + (endYY < 10 ? '0' : '') + string(endYY);
+    }
+    // Stored monthKey and fy must equal the values derived from date (D-04). Functions re-derive them too.
+    function datesConsistent(d) {
+      return isDateStr(d.date) && d.monthKey == monthKeyOf(d.date) && d.fy == fyOf(d.date);
+    }
+    function lockedOn(date) {
+      return exists(/databases/$(database)/documents/period_locks/$(monthKeyOf(date)));
+    }
+    function monthOpenForCreate() { return !lockedOn(data().date); }
+    // Both the old and the new date's months must be open.
+    function monthOpenForUpdate() {
+      return !lockedOn(resource.data.date) && !lockedOn(data().date);
+    }
+
+    // ---------- audit stamps and soft delete ----------
+
+    function stampedCreate() {
+      return data().createdBy == uid()
+        && data().createdAt == request.time
+        && data().updatedAt == request.time
+        && data().get('isDeleted', false) == false;
+    }
+    function stampedUpdate() {
+      return data().updatedBy == uid()
+        && data().updatedAt == request.time
+        && untouched(['createdBy', 'createdAt']);
+    }
+    // Soft delete is a normal update that sets isDeleted with who and why; restore only by owner.
+    function softDeleteOk() {
+      return !(data().get('isDeleted', false) == true && resource.data.get('isDeleted', false) == false)
+        || (data().deletedBy == uid() && data().deletedAt == request.time && data().deleteReason is string);
+    }
+    function noRestore() {
+      return !(resource.data.get('isDeleted', false) == true && data().get('isDeleted', false) == false)
+        || isOwner();
+    }
+
+    // ---------- server-only field groups (D-07, D-08, D-30) ----------
+
+    function approvalFields() {
+      return ['approvalStatus', 'approvedBy', 'approvedAt', 'rejectReason'];
+    }
+    function postingFields() {
+      return ['voucherNo', 'postingError', 'searchKeywords', 'categoryPath', 'expenseId',
+              'expenseIds', 'paidPaise', 'paidStatus', 'matchStatus', 'level'];
+    }
+    function createdPending() {
+      return data().approvalStatus == 'pending'
+        && hasNone(['approvedBy', 'approvedAt', 'rejectReason']);
+    }
+    // Wage-rate fields on workers (D-32).
+    function workerRateFields() {
+      return ['defaultPayType', 'otMultiplierBp', 'isThekedar'];
+    }
+    // Rates never sit on the worker master, which PMs can read (rule A); they live in workers/{id}/private/pay.
+    function workerMoneyFields() { return ['defaultRatePaise', 'otRatePaise']; }
+
+    // ================= identity, settings, system =================
+
+    match /users/{userId} {
+      allow read: if signedIn() && (userId == uid() || isFinance());
+      // Profile is created and role-managed by callables. Users may change their own preferences.
+      allow update: if signedIn() && userId == uid()
+        && onlyChanges(['language', 'theme', 'updatedAt', 'updatedBy']) && stampedUpdate()
+        && data().theme in ['light', 'dark', 'system'] && data().language in ['en', 'hi'];
+      allow create, delete: if false;
+
+      match /devices/{deviceId} {
+        allow read, write: if signedIn() && userId == uid();
+      }
+      match /notifications/{notificationId} {
+        allow read: if signedIn() && userId == uid();
+        allow update: if signedIn() && userId == uid() && onlyChanges(['read']);
+        allow create, delete: if false;
+      }
+    }
+
+    match /settings/{docId} {
+      allow read: if (docId in ['company', 'operations'] && signedIn())
+        || (docId in ['bank', 'templates', 'numbering', 'deductionHeads'] && hasRole(['owner', 'accountant', 'ca']));
+      allow create, update: if isOwner()
+        || (isFinance() && docId in ['bank', 'templates']);
+      allow delete: if false;
+    }
+
+    // Server-only collections (D-08, D-09, D-12, D-31).
+    match /counters/{id} { allow read, write: if false; }
+    match /postings/{id} { allow read, write: if false; }
+    match /processed_events/{id} { allow read, write: if false; }
+    match /lead_phones/{id} { allow read, write: if false; }
+    match /share_links/{id} { allow read, write: if false; }
+    match /lead_webhook_logs/{id} { allow read: if isOwner(); allow write: if false; }
+    match /category_moves/{id} { allow read: if isOwner(); allow write: if false; }
+
+    match /audit_log/{id} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow write: if false;
+    }
+
+    match /rollups/{id} {
+      allow read: if readsTotals()
+        || (isPm() && resource.data.scope == 'project' && assigned(resource.data.projectId));
+      allow write: if false;
+    }
+    match /finance_rollups/{id} {
+      allow read: if readsTotals();
+      allow write: if false;
+    }
+
+    match /period_locks/{monthKey} {
+      allow read: if signedIn();
+      allow write: if false;          // lock / unlock via owner callable (audited)
+    }
+
+    // ================= masters =================
+
+    match /clients/{id} {
+      allow read: if isFinance();
+      allow create: if isFinance() && stampedCreate() && hasNone(['searchKeywords', 'outstandingPaise']);
+      allow update: if isFinance() && stampedUpdate()
+        && untouched(['searchKeywords', 'outstandingPaise']) && softDeleteOk() && noRestore();
+      allow delete: if false;
+    }
+
+    match /vendors/{id} {
+      allow read: if hasRole(['owner', 'accountant', 'pm', 'ca']);
+      allow create: if isFinance() && stampedCreate() && hasNone(['searchKeywords']);
+      allow update: if isFinance() && stampedUpdate()
+        && untouched(['searchKeywords']) && softDeleteOk() && noRestore();
+      allow delete: if false;
+
+      match /private/{docId} {
+        allow read: if isFinance();
+        allow create, update: if isFinance();
+        allow delete: if false;
+      }
+    }
+    match /vendor_balances/{id} {
+      allow read: if isFinanceReader();
+      allow write: if false;
+    }
+
+    // Supervisors don't read the worker master; they use the site roster (fix 9, D-33).
+    // A PM reads only workers on the roster of an assigned project (QA F1). siteIds is maintained by the roster
+    // function; PM list queries use where('siteIds', 'array-contains-any', <their projects>), at most 30.
+    match /workers/{id} {
+      // QA N10: also a thekedar whose crew is on one of the PM's sites (crewSiteIds, function-maintained).
+      allow read: if isFinance() || (isPm() && (resource.data.get('siteIds', []).hasAny(claimProjects())
+        || resource.data.get('crewSiteIds', []).hasAny(claimProjects())));
+      // PMs add workers without pay fields; finance sets rates in private/pay (fix 6, D-32).
+      allow create: if stampedCreate() && hasNone(['searchKeywords', 'siteIds', 'crewSiteIds']) && hasNone(workerMoneyFields())
+        && (isFinance() || (isPm() && hasNone(workerRateFields())));
+      allow update: if stampedUpdate() && untouched(['searchKeywords', 'siteIds', 'crewSiteIds']) && hasNone(workerMoneyFields())
+        && (isFinance() || (isPm() && untouched(workerRateFields())
+              && resource.data.get('siteIds', []).hasAny(claimProjects())))
+        && softDeleteOk() && noRestore();
+      allow delete: if false;
+
+      // D-22: KYC, bank and thekedar PAN; and 'pay' (default and overtime rates). Owner and accountant only.
+      match /private/{docId} {
+        allow read: if isFinance();
+        allow create, update: if isFinance()
+          && (docId != 'pay' || (isMoney(data().defaultRatePaise) && isMoney(data().get('otRatePaise', 0))));
+        allow delete: if false;
+      }
+      // Per-project pay terms (§6.2): owner and accountant only (rule A: PMs never see rates).
+      match /project_terms/{pid} {
+        allow read: if isFinance();
+        allow create, update: if isFinance()
+          && isMoney(data().get('ratePaise', 0)) && isMoney(data().get('otRatePaise', 0));
+        allow delete: if false;
+      }
+    }
+
+    // PM proposals to change a worker's rate; approved by the approveRecords callable (D-32).
+    match /rate_change_requests/{id} {
+      allow read: if isFinance() || (isPm() && resource.data.requestedBy == uid());
+      allow create: if stampedCreate() && createdPending() && data().requestedBy == uid()
+        && (isFinance() || (data().get('projectId', null) is string && pmOn(data().projectId)))
+        && data().workerId is string
+        && isMoney(data().get('proposedRatePaise', 0)) && isMoney(data().get('proposedOtRatePaise', 0))
+        && data().reason is string;
+      allow update, delete: if false;
+    }
+
+    match /expense_categories/{id} {
+      allow read: if signedIn();
+      // Re-parenting goes through the moveCategory callable (D-10), so parentId/level are server-written.
+      allow create: if isOwner() && stampedCreate() && hasNone(['level']) && data().get('isSystem', false) == false;
+      allow update: if isOwner() && stampedUpdate()
+        && untouched(['parentId', 'level', 'isSystem']);
+      allow delete: if false;
+    }
+
+    // Deactivate (active: false) instead of deleting.
+    match /materials/{id} {
+      allow read: if signedIn();
+      allow create, update: if isFinance();
+      allow delete: if false;
+    }
+
+    match /machinery/{id} {
+      allow read: if isStaff();
+      allow create, update: if isFinance();
+      allow delete: if false;
+    }
+
+    match /accounts/{id} {
+      allow read: if isFinanceReader();
+      allow create: if isFinance() && stampedCreate() && hasNone(['balancePaise'])
+        && isDateStr(data().openingDate) && data().openingBalancePaise is int;
+      // Opening balance and date: owner only, and only while the opening month is unlocked.
+      allow update: if isFinance() && stampedUpdate() && untouched(['balancePaise'])
+        && (untouched(['openingBalancePaise', 'openingDate'])
+            || (isOwner() && isDateStr(data().openingDate) && data().openingBalancePaise is int
+                && !lockedOn(resource.data.openingDate) && !lockedOn(data().openingDate)));
+      allow delete: if false;
+    }
+
+    match /item_library/{id} {
+      allow read: if isFinance();
+      allow create, update: if isFinance();
+      allow delete: if false;
+    }
+
+    match /agreement_templates/{id} {
+      allow read: if isFinance();
+      allow create, update: if isOwner();
+      allow delete: if false;
+    }
+    match /agreement_clauses/{clauseKey} {
+      allow read: if isFinance();
+      allow create, update: if isOwner();
+      allow delete: if false;
+      // Versions are immutable once written (§8A.4).
+      match /versions/{n} {
+        allow read: if isFinance();
+        allow create: if isOwner();
+        allow update, delete: if false;
+      }
+    }
+
+    // ================= projects =================
+
+    match /projects/{pid} {
+      allow read: if seesAllProjects() || (isSiteRole() && uid() in resource.data.assignedUsers);
+      // Created by the createProject callable (allocates AG-P-0001 code).
+      allow create, delete: if false;
+      allow update: if stampedUpdate() && untouched(['code', 'searchKeywords']) && (
+        (isOwner())
+        || (hasRole(['accountant']) && untouched(['assignedUsers', 'isArchived']))
+        || (pmOn(pid) && onlyChanges(['progressPct', 'status', 'updatedAt', 'updatedBy']))
+      );
+
+      // D-28: money fields live here, not on the project document.
+      match /private/{docId} {
+        // Budget: also the viewer (budget vs spent, D-42), the CA (budget vs actual) and the assigned PM.
+        allow read: if isFinance() || (docId == 'budget' && (hasRole(['viewer', 'ca']) || pmOn(pid)));
+        allow create, update: if isFinance();
+        allow delete: if false;
+      }
+
+      // Site roster (fix 9, D-33): who works on this site. Names and roles only, no rates.
+      // Membership is written by finance or the assigned PM; snapshots are filled by a function.
+      match /roster/{workerId} {
+        allow read: if canReadProject(pid);
+        allow create: if (isFinance() || pmOn(pid))
+          && data().active == true && data().addedBy == uid() && data().addedAt == request.time
+          && hasNone(['workerName', 'workerRole', 'photoPath', 'thekedarName', 'payType']);
+        allow update: if (isFinance() || pmOn(pid))
+          && onlyChanges(['active', 'removedBy', 'removedAt', 'updatedAt', 'updatedBy']);
+        allow delete: if false;
+      }
+
+      // Revenue side: finance only.
+      match /project_units/{id} {
+        allow read: if isFinance();
+        allow create, update: if isFinance();
+        allow delete: if false;
+      }
+      match /project_milestones/{id} {
+        allow read: if isFinance();
+        allow create, update: if isFinance();
+        allow delete: if false;
+      }
+      match /boq_rates/{id} {
+        allow read: if isFinance();
+        allow create, update: if isFinance();
+        allow delete: if false;
+      }
+
+      // Site-visible, quantities only.
+      match /boq_items/{id} {
+        allow read: if canReadProject(pid);
+        allow create, update: if isFinance() || pmOn(pid);
+        allow delete: if false;
+      }
+      match /measurement_book/{id} {
+        allow read: if canReadProject(pid);
+        allow create, update: if (isFinance() || pmOn(pid)) && isDateStr(data().date)
+          && isQty(data().qtyMilli);
+        allow delete: if false;
+      }
+      match /project_approvals/{id} {
+        allow read: if canReadProject(pid);
+        allow create, update: if isFinance() || pmOn(pid);
+        allow delete: if false;
+      }
+      match /eot_requests/{id} {
+        allow read: if canReadProject(pid);
+        // Approval updates the stipulated end date server-side, so status 'approved' is set by callable.
+        allow create: if (isFinance() || pmOn(pid)) && data().status in ['applied', 'pending'];
+        allow update: if (isFinance() || pmOn(pid))
+          && data().status in ['applied', 'pending'] && resource.data.status in ['applied', 'pending'];
+        allow delete: if false;
+      }
+      match /hindrance_register/{id} {
+        allow read: if canReadProject(pid);
+        allow create, update: if isFinance() || pmOn(pid);
+        allow delete: if false;
+      }
+      // One DPR per project per day; ID = date (offline-capable).
+      match /dpr/{date} {
+        allow read: if canReadProject(pid);
+        allow create, update: if (isFinance() || siteRoleOn(pid))
+          && isDateStr(date) && data().date == date;
+        allow delete: if false;
+      }
+    }
+
+    // ================= labour =================
+
+    match /attendance/{attId} {
+      allow read: if isFinance() || siteRoleOn(resource.data.projectId);
+
+      function attendanceShapeOk() {
+        return attId == data().projectId + '_' + data().workerId + '_' + data().date
+          && datesConsistent(data())
+          && data().status in ['present', 'half_day', 'absent', 'overtime', 'leave']
+          && isQty(data().get('otHoursMilli', 0))
+          && data().markedBy == uid();
+      }
+      // D-25: lock window measured on server time from the attendance date; an owner unlock (24 h) reopens a day.
+      function withinLockWindow() {
+        let parts = data().date.split('-');
+        let lockDays = get(/databases/$(database)/documents/settings/operations).data.get('attendanceLockDays', 3);
+        let unlockPath = /databases/$(database)/documents/attendance_unlocks/$(data().projectId + '_' + data().date);
+        return request.time < timestamp.date(int(parts[0]), int(parts[1]), int(parts[2]))
+          + duration.value(lockDays + 1, 'd')
+          || (exists(unlockPath) && get(unlockPath).data.untilTs > request.time);
+      }
+      function attendanceWriter(pid) {
+        return isFinance() || siteRoleOn(pid);
+      }
+      function serverAttendanceFields() {
+        return ['rateSnapshotPaise', 'otRateSnapshotPaise', 'earnedPaise', 'payType', 'syncedAt'];
+      }
+
+      // Only workers on the site's roster can be marked (D-33).
+      allow create: if attendanceWriter(data().projectId) && attendanceShapeOk()
+        && onRoster(data().projectId, data().workerId)
+        && hasNone(serverAttendanceFields())
+        && monthOpenForCreate() && (isOwner() || withinLockWindow());
+      // Clients update with merge (Phase 1 note P1-01), so server fields survive.
+      allow update: if attendanceWriter(resource.data.projectId)
+        && untouched(['projectId', 'workerId', 'date', 'monthKey', 'fy'])
+        && untouched(serverAttendanceFields())
+        && data().markedBy == uid()
+        && data().status in ['present', 'half_day', 'absent', 'overtime', 'leave']
+        && isQty(data().get('otHoursMilli', 0))
+        && monthOpenForUpdate() && (isOwner() || withinLockWindow());
+      allow delete: if false;
+    }
+
+    // Wage and thekedar payments: money checks on create and update (fixes 4, 7).
+    function workerPaymentOk(d) {
+      return datesConsistent(d)
+        && d.type in ['wage', 'advance', 'bonus', 'thekedar_bill']
+        && d.mode in paymentModes() && d.mode != 'credit'
+        && isMoney(d.grossPaise) && isMoney(d.netPaidPaise)
+        && isMoney(d.get('tdsPaise', 0)) && isMoney(d.get('advanceRecoveredPaise', 0))
+        && d.netPaidPaise == d.grossPaise - d.get('advanceRecoveredPaise', 0) - d.get('tdsPaise', 0)
+        // §11A.4: any cash out needs a paid-from account.
+        && (d.netPaidPaise == 0 || d.get('accountId', null) is string);
+    }
+    // D-45: wage payments, balances and thekedar contracts are money on workers: owner, accountant and CA only.
+    match /worker_payments/{id} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow create: if isFinance()
+        && stampedCreate() && createdPending() && hasNone(postingFields())
+        && workerPaymentOk(data()) && monthOpenForCreate();
+      // Editable while pending; approved records change only through credit/adjustment.
+      allow update: if isFinance()
+        && resource.data.approvalStatus == 'pending'
+        && stampedUpdate() && untouched(approvalFields()) && untouched(postingFields())
+        && untouched(['projectId'])
+        && workerPaymentOk(data())
+        && monthOpenForUpdate() && softDeleteOk() && noRestore();
+      allow delete: if false;
+    }
+
+    match /worker_balances/{id} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow write: if false;
+    }
+
+    match /thekedar_contracts/{id} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow create: if isFinance() && stampedCreate()
+        && hasNone(['measuredValuePaise', 'paidPaise', 'balancePaise'])
+        && isMoney(data().get('ratePaise', 0)) && isMoney(data().get('valuePaise', 0));
+      allow update: if isFinance() && stampedUpdate()
+        && untouched(['projectId', 'measuredValuePaise', 'paidPaise', 'balancePaise'])
+        && isMoney(data().get('ratePaise', 0)) && isMoney(data().get('valuePaise', 0))
+        && softDeleteOk() && noRestore();
+      allow delete: if false;
+    }
+
+    // Work measured on a thekedar contract (§6.4): finance records it; the value is rate × quantity or share × value.
+    match /contract_measurements/{id} {
+      allow read: if isFinance();
+      allow create: if isFinance() && stampedCreate() && isDateStr(data().date)
+        && isPositiveMoney(data().valuePaise) && isQty(data().get('qtyMilli', 0))
+        && exists(/databases/$(database)/documents/thekedar_contracts/$(data().contractId));
+      allow update, delete: if false;
+    }
+
+    // A thekedar contract without money, for the PM of the project (QA N10; D-45). Written by functions only.
+    match /contract_scopes/{id} {
+      allow read: if isFinance() || pmOn(resource.data.projectId);
+      allow write: if false;
+    }
+
+    // Owner unlock of a locked attendance day (D-25): written by the unlockAttendance callable only.
+    match /attendance_unlocks/{id} {
+      allow read: if isFinance() || siteRoleOn(resource.data.projectId);
+      allow write: if false;
+    }
+
+    // Optional selfie and GPS check-in when marking attendance (§6.3, C5). The selfie file is in Storage.
+    match /attendance_checkins/{id} {
+      allow read: if isFinance() || resource.data.by == uid();
+      allow create: if (isFinance() || siteRoleOn(data().projectId)) && data().by == uid()
+        && isDateStr(data().date) && id == data().projectId + '_' + data().date + '_' + uid();
+      allow update, delete: if false;
+    }
+
+    // ================= expenses =================
+
+    // Money shape, checked on create AND update (fix 7).
+    function expenseMoneyOk(d) {
+      return datesConsistent(d)
+        && d.categoryId is string
+        && isPositiveMoney(d.amountPaise)
+        && isMoney(d.get('taxablePaise', 0)) && isMoney(d.get('cgstPaise', 0))
+        && isMoney(d.get('sgstPaise', 0)) && isMoney(d.get('igstPaise', 0)) && isMoney(d.get('tdsPaise', 0))
+        && d.mode in paymentModes()
+        // Paid entries need a paid-from account (§11A.4); no-bill entries need a reason.
+        && (d.mode == 'credit' || d.get('accountId', null) is string)
+        && (d.get('billPaths', []).size() > 0 || d.get('noBillReason', '') != '');
+    }
+
+    match /expenses/{id} {
+      // Viewers see totals through rollups, not individual bills (I3 default, fix 8).
+      allow read: if hasRole(['owner', 'accountant', 'ca'])
+        || pmOn(resource.data.projectId)
+        || (isSupervisor() && resource.data.enteredBy == uid() && assigned(resource.data.projectId));
+
+      // Company overheads (no project) only for finance roles (I4).
+      function expenseScopeOk() {
+        return (data().get('projectId', null) == null && isFinance())
+          || (data().get('projectId', null) is string && (isFinance() || siteRoleOn(data().projectId)));
+      }
+
+      allow create: if expenseScopeOk() && expenseMoneyOk(data())
+        && data().source == 'manual' && data().enteredBy == uid()
+        && stampedCreate() && createdPending() && hasNone(postingFields())
+        && monthOpenForCreate();
+
+      // Pending: the author (or finance / assigned PM) may edit. Approved: finance roles may edit
+      // with audit; posting re-runs (D-08).
+      allow update: if stampedUpdate() && expenseMoneyOk(data())
+        && untouched(approvalFields()) && untouched(postingFields())
+        && untouched(['enteredBy', 'source', 'sourceRef'])
+        && monthOpenForUpdate() && softDeleteOk() && noRestore()
+        && resource.data.source == 'manual'
+        && (
+          isFinance()
+          || (resource.data.approvalStatus == 'pending' && pmOn(resource.data.projectId)
+              && untouched(['projectId']))
+          || (resource.data.approvalStatus == 'pending' && isSupervisor()
+              && resource.data.enteredBy == uid() && assigned(resource.data.projectId)
+              && untouched(['projectId']))
+        );
+      allow delete: if false;
+    }
+
+    match /expense_templates/{id} {
+      allow read: if isFinance();
+      allow create, update: if isFinance() && isPositiveMoney(data().amountPaise);
+      allow delete: if false;
+    }
+
+    // ================= procurement and stock =================
+
+    match /material_requests/{id} {
+      allow read: if isFinance() || siteRoleOn(resource.data.projectId);
+      allow create: if (isFinance() || siteRoleOn(data().projectId))
+        && stampedCreate() && data().status == 'pending' && data().requestedBy == uid();
+      // Approval / ordering by finance or the assigned PM.
+      allow update: if stampedUpdate() && untouched(['projectId', 'requestedBy']) && (
+        isFinance() || pmOn(resource.data.projectId)
+        || (isSupervisor() && resource.data.requestedBy == uid() && resource.data.status == 'pending'
+            && data().status == 'pending' && assigned(resource.data.projectId))
+      );
+      allow delete: if false;
+    }
+
+    match /purchase_orders/{id} {
+      allow read: if isFinance() || pmOn(resource.data.projectId);
+      // PO numbers are not GST documents; issued in the client by finance/PM.
+      allow create: if (isFinance() || pmOn(data().projectId)) && stampedCreate();
+      allow update: if (isFinance() || pmOn(resource.data.projectId)) && stampedUpdate()
+        && untouched(['projectId']) && softDeleteOk() && noRestore();
+      allow delete: if false;
+    }
+
+    match /goods_receipts/{id} {
+      allow read: if isFinance() || siteRoleOn(resource.data.projectId);
+      allow create: if (isFinance() || siteRoleOn(data().projectId)) && stampedCreate()
+        && isDateStr(data().date) && monthOpenForCreate();
+      allow update: if (isFinance() || pmOn(resource.data.projectId)) && stampedUpdate()
+        && untouched(['projectId']) && isDateStr(data().date) && monthOpenForUpdate()
+        && softDeleteOk() && noRestore();
+      allow delete: if false;
+    }
+
+    function vendorBillOk(d) {
+      return datesConsistent(d)
+        && isPositiveMoney(d.totalPaise) && isMoney(d.get('taxablePaise', 0))
+        && isMoney(d.get('cgstPaise', 0)) && isMoney(d.get('sgstPaise', 0)) && isMoney(d.get('igstPaise', 0));
+    }
+    match /vendor_bills/{id} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow create: if isFinance() && stampedCreate() && createdPending() && hasNone(postingFields())
+        && vendorBillOk(data()) && monthOpenForCreate();
+      allow update: if isFinance() && stampedUpdate()
+        && untouched(approvalFields()) && untouched(postingFields())
+        && vendorBillOk(data())
+        && monthOpenForUpdate() && softDeleteOk() && noRestore();
+      allow delete: if false;
+    }
+
+    function vendorPaymentOk(d) {
+      return datesConsistent(d) && isPositiveMoney(d.amountPaise) && isMoney(d.get('tdsPaise', 0))
+        && d.mode in paymentModes() && d.mode != 'credit' && d.accountId is string;
+    }
+    match /vendor_payments/{id} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow create: if isFinance() && stampedCreate() && hasNone(postingFields())
+        && vendorPaymentOk(data()) && monthOpenForCreate();
+      allow update: if isFinance() && stampedUpdate() && untouched(postingFields())
+        && vendorPaymentOk(data())
+        && monthOpenForUpdate() && softDeleteOk() && noRestore();
+      allow delete: if false;
+    }
+
+    match /stock_ledger/{id} {
+      allow read: if isFinance() || siteRoleOn(resource.data.projectId);
+      // Damage and theft always need owner approval and a reason, from every role (fix 5, §9.3).
+      allow create: if stampedCreate() && hasNone(['ratePaise', 'valuePaise', 'approvedBy', 'approvedAt'])
+        && datesConsistent(data()) && monthOpenForCreate()
+        && isQty(data().get('qtyInMilli', 0)) && isQty(data().get('qtyOutMilli', 0))
+        && (isFinance() || siteRoleOn(data().projectId))
+        && (
+          data().kind == 'consumption'
+          || (data().kind in ['damage', 'theft'] && createdPending()
+              && data().get('reason', '') is string && data().get('reason', '') != '')
+          || (isFinance() && data().kind == 'return')
+        );
+      allow update: if false;          // corrections are new rows
+      allow delete: if false;
+    }
+    match /stock_balances/{id} {
+      allow read: if isFinance() || siteRoleOn(resource.data.projectId);
+      allow write: if false;
+    }
+    match /stock_transfers/{id} {
+      allow read: if isFinance()
+        || siteRoleOn(resource.data.fromProjectId) || siteRoleOn(resource.data.toProjectId);
+      // Transport cost is recorded as a normal (pending) expense linked to the transfer, never here (D-30).
+      allow create: if (isFinance() || siteRoleOn(data().fromProjectId)) && stampedCreate()
+        && data().status == 'sent' && data().sentBy == uid() && isQty(data().qtySentMilli)
+        && hasNone(['qtyReceivedMilli', 'shortageMilli', 'transportCostPaise']);
+      // Only the receiving site confirms.
+      allow update: if (isFinance() || siteRoleOn(resource.data.toProjectId)) && stampedUpdate()
+        && resource.data.status == 'sent' && data().status == 'received' && data().receivedBy == uid()
+        && isQty(data().qtyReceivedMilli)
+        && onlyChanges(['status', 'qtyReceivedMilli', 'receivedBy', 'receivedDate', 'updatedAt', 'updatedBy']);
+      allow delete: if false;
+    }
+    match /stock_counts/{id} {
+      allow read: if isFinance() || siteRoleOn(resource.data.projectId);
+      allow create: if (isFinance() || siteRoleOn(data().projectId)) && stampedCreate() && data().status == 'draft';
+      allow update: if (isFinance() || siteRoleOn(resource.data.projectId)) && stampedUpdate()
+        && resource.data.status == 'draft' && data().status == 'draft';
+      allow delete: if false;
+    }
+
+    // ================= machinery =================
+
+    match /machinery_logs/{id} {
+      allow read: if isFinance() || siteRoleOn(resource.data.projectId);
+      allow create: if (isFinance() || siteRoleOn(data().projectId)) && stampedCreate()
+        && datesConsistent(data()) && hasNone(['hoursMilli']) && monthOpenForCreate();
+      allow update: if (isFinance() || siteRoleOn(resource.data.projectId)) && stampedUpdate()
+        && untouched(['projectId', 'hoursMilli']) && datesConsistent(data())
+        && monthOpenForUpdate() && softDeleteOk() && noRestore();
+      allow delete: if false;
+    }
+
+    // Fuel and maintenance generate expenses, so they are created pending (fix 3, D-30).
+    function fuelOk(d) {
+      return datesConsistent(d) && isQty(d.litresMilli) && isMoney(d.ratePaise) && isMoney(d.amountPaise)
+        && (d.amountPaise == 0 || d.get('accountId', null) is string || d.source == 'own_stock');
+    }
+    match /machinery_fuel_logs/{id} {
+      allow read: if isFinance() || siteRoleOn(resource.data.projectId);
+      allow create: if (isFinance() || siteRoleOn(data().projectId)) && stampedCreate()
+        && createdPending() && hasNone(postingFields())
+        && fuelOk(data()) && monthOpenForCreate();
+      allow update: if (isFinance() || siteRoleOn(resource.data.projectId)) && stampedUpdate()
+        && resource.data.approvalStatus == 'pending'
+        && untouched(['projectId']) && untouched(approvalFields()) && untouched(postingFields())
+        && fuelOk(data()) && monthOpenForUpdate() && softDeleteOk() && noRestore();
+      allow delete: if false;
+    }
+    function maintenanceOk(d) {
+      return datesConsistent(d) && isMoney(d.costPaise)
+        && (d.costPaise == 0 || d.get('accountId', null) is string || d.get('vendorId', null) is string);
+    }
+    match /machinery_maintenance/{id} {
+      allow read: if hasRole(['owner', 'accountant', 'pm']);
+      allow create: if hasRole(['owner', 'accountant', 'pm']) && stampedCreate()
+        && createdPending() && hasNone(postingFields())
+        && maintenanceOk(data()) && monthOpenForCreate();
+      allow update: if hasRole(['owner', 'accountant', 'pm']) && stampedUpdate()
+        && resource.data.approvalStatus == 'pending'
+        && untouched(approvalFields()) && untouched(postingFields())
+        && maintenanceOk(data()) && monthOpenForUpdate() && softDeleteOk() && noRestore();
+      allow delete: if false;
+    }
+    match /machinery_rent_statements/{id} {
+      allow read: if isFinance();
+      allow write: if false;          // generated and approved by callables
+    }
+
+    // ================= billing, agreements, tenders =================
+
+    // Numbers, totals, lock and status transitions are set by callables (D-12, D-15, D-24).
+    match /quotations/{id} {
+      allow read: if isFinance();
+      allow create: if isFinance() && stampedCreate() && data().status == 'draft'
+        && hasNone(['number', 'totals', 'pdfPath', 'shareLinkId']);
+      allow update: if isFinance() && stampedUpdate() && resource.data.status == 'draft'
+        && data().status == 'draft' && untouched(['number', 'version', 'rootQuotationId', 'totals', 'pdfPath', 'shareLinkId']);
+      allow delete: if false;
+    }
+
+    function invoiceServerFields() {
+      return ['number', 'totals', 'netReceivablePaise', 'amountInWords', 'lockedAt',
+              'pdfPath', 'shareLinkId', 'paidPaise', 'tdsReceivedPaise', 'retentionHeldPaise'];
+    }
+    match /invoices/{id} {
+      allow read: if isFinanceReader();
+      allow create: if isFinance() && stampedCreate() && data().status == 'draft'
+        && hasNone(invoiceServerFields());
+      // Only drafts are client-editable; after issue the invoice is locked (§8.3).
+      allow update: if isFinance() && stampedUpdate()
+        && resource.data.status == 'draft' && data().status == 'draft'
+        && untouched(invoiceServerFields());
+      allow delete: if false;
+    }
+
+    match /ra_bills/{id} {
+      allow read: if isFinanceReader();
+      allow create: if isFinance() && stampedCreate() && hasNone(['invoiceId'])
+        && isMoney(data().get('grossPaise', 0)) && isMoney(data().get('netPaise', 0));
+      allow update: if isFinance() && stampedUpdate() && untouched(['projectId', 'invoiceId'])
+        && isMoney(data().get('grossPaise', 0)) && isMoney(data().get('netPaise', 0))
+        && softDeleteOk() && noRestore();
+      allow delete: if false;
+    }
+
+    function receiptServerFields() {
+      return ['receiptNo', 'advanceReceiptVoucherNo', 'receiptPdfPath', 'voucherNo', 'adjustedAgainst'];
+    }
+    function receiptOk(d) {
+      return datesConsistent(d) && isPositiveMoney(d.amountPaise)
+        && isMoney(d.get('tdsPaise', 0)) && isMoney(d.get('retentionPaise', 0))
+        && isMoney(d.get('otherDeductionsPaise', 0))
+        && d.mode in paymentModes() && d.mode != 'credit' && d.accountId is string;
+    }
+    match /payments_received/{id} {
+      allow read: if isFinanceReader();
+      allow create: if isFinance() && stampedCreate() && hasNone(receiptServerFields())
+        && receiptOk(data()) && monthOpenForCreate();
+      allow update: if isFinance() && stampedUpdate() && untouched(receiptServerFields())
+        && receiptOk(data()) && monthOpenForUpdate() && softDeleteOk() && noRestore();
+      allow delete: if false;
+    }
+
+    match /share_logs/{id} {
+      allow read: if isFinance();
+      allow write: if false;          // written by the share callable
+    }
+
+    match /agreements/{id} {
+      allow read: if isFinance();
+      allow create: if isFinance() && stampedCreate() && data().status == 'draft'
+        && hasNone(['number', 'lockedAt', 'pdfPath', 'shareLinkId', 'approvedBy']);
+      // Locked once signed (§8A.5); status transitions past draft go through callables.
+      allow update: if isFinance() && stampedUpdate()
+        && resource.data.status in ['draft', 'under_review'] && data().status in ['draft', 'under_review']
+        && untouched(['number', 'lockedAt', 'pdfPath', 'shareLinkId', 'approvedBy']);
+      allow delete: if false;
+
+      match /agreement_signatures/{sid} {
+        allow read: if isFinance();
+        allow create: if isFinance();
+        allow update, delete: if false;
+      }
+      match /agreement_amendments/{aid} {
+        allow read: if isFinance();
+        allow create: if isFinance() && data().status == 'draft';
+        allow update: if isFinance() && resource.data.status == 'draft' && data().status == 'draft';
+        allow delete: if false;
+      }
+    }
+
+    match /tenders/{id} {
+      allow read: if isFinance();
+      allow create: if isFinance() && stampedCreate() && hasNone(['projectId', 'searchKeywords']);
+      allow update: if isFinance() && stampedUpdate() && untouched(['projectId', 'searchKeywords']);
+      allow delete: if false;
+
+      match /tender_documents/{did} {
+        allow read: if isFinance();
+        allow create, update: if isFinance();
+        allow delete: if false;
+      }
+    }
+
+    // Create and update split: untouched() reads resource, which is null on create (fix 2).
+    function emdServerFields() { return ['paymentAccountTxnId', 'refundAccountTxnId']; }
+    match /emd_records/{id} {
+      allow read: if isFinanceReader();
+      allow create: if isFinance() && stampedCreate() && hasNone(emdServerFields())
+        && isPositiveMoney(data().amountPaise);
+      allow update: if isFinance() && stampedUpdate() && untouched(emdServerFields())
+        && isPositiveMoney(data().amountPaise);
+      allow delete: if false;
+    }
+    function guaranteeServerFields() { return ['bankChargesExpenseId', 'renewalTaskId']; }
+    match /guarantees/{id} {
+      allow read: if isFinanceReader();
+      allow create: if isFinance() && stampedCreate() && hasNone(guaranteeServerFields())
+        && isPositiveMoney(data().amountPaise) && isMoney(data().get('bankChargesPaise', 0));
+      allow update: if isFinance() && stampedUpdate() && untouched(guaranteeServerFields())
+        && isPositiveMoney(data().amountPaise) && isMoney(data().get('bankChargesPaise', 0));
+      allow delete: if false;
+    }
+
+    // ================= sales, calendar, documents =================
+
+    function leadVisible(lead) {
+      return isOwner() || (isStaff() && lead.assignedTo == uid());
+    }
+    match /leads/{id} {
+      allow read: if leadVisible(resource.data);
+      // Creation goes through the createLead callable (de-dup via lead_phones, §13.1).
+      allow create, delete: if false;
+      allow update: if leadVisible(resource.data) && stampedUpdate()
+        && untouched(['phone', 'source', 'web', 'searchKeywords', 'convertedTo'])
+        && (isOwner() || untouched(['assignedTo']));
+
+      match /lead_activities/{aid} {
+        allow read: if leadVisible(get(/databases/$(database)/documents/leads/$(id)).data);
+        allow create: if leadVisible(get(/databases/$(database)/documents/leads/$(id)).data)
+          && data().by == uid() && data().type in ['call', 'visit', 'message', 'note'];
+        allow update, delete: if false;
+      }
+    }
+
+    match /events/{id} {
+      allow read: if isFinance()
+        || (isStaff() && uid() in resource.data.get('attendees', []))
+        || (isSiteRole() && resource.data.get('projectId', null) is string && assigned(resource.data.projectId));
+      allow create: if isStaff() && stampedCreate() && hasNone(['source'])
+        && (data().get('projectId', null) == null || isFinance() || siteRoleOn(data().projectId));
+      allow update: if isStaff() && stampedUpdate() && resource.data.get('source', null) == null
+        && untouched(['source'])
+        && (resource.data.createdBy == uid() || isOwner());
+      allow delete: if isStaff() && resource.data.get('source', null) == null
+        && (resource.data.createdBy == uid() || isOwner());
+    }
+
+    match /tasks/{id} {
+      allow read: if isOwner() || (isStaff() && (resource.data.assignedTo == uid() || resource.data.createdBy == uid()));
+      allow create: if isStaff() && stampedCreate()
+        && (data().get('projectId', null) == null || isFinance() || siteRoleOn(data().projectId));
+      allow update: if isStaff() && stampedUpdate()
+        && (isOwner() || resource.data.assignedTo == uid() || resource.data.createdBy == uid())
+        && (isOwner() || resource.data.createdBy == uid() || untouched(['assignedTo', 'title', 'dueAt']));
+      allow delete: if false;
+
+      match /comments/{cid} {
+        function parentTask() { return get(/databases/$(database)/documents/tasks/$(id)).data; }
+        allow read: if isOwner() || parentTask().assignedTo == uid() || parentTask().createdBy == uid();
+        allow create: if isStaff() && data().by == uid()
+          && (isOwner() || parentTask().assignedTo == uid() || parentTask().createdBy == uid());
+        allow update, delete: if false;
+      }
+    }
+
+    match /documents/{id} {
+      function docReadable(d) {
+        return isFinance()
+          || (!d.get('restricted', false) && (
+                (hasRole(['ca']) && d.type in ['invoice', 'bill', 'receipt', 'bank_statement', 'gst', 'tds'])
+                || (d.get('projectId', null) is string && siteRoleOn(d.projectId))
+             ));
+      }
+      allow read: if docReadable(resource.data);
+      allow create: if stampedCreate() && (
+        isFinance()
+        || (data().get('restricted', false) == false && data().get('projectId', null) is string
+            && (pmOn(data().projectId) || (isSupervisor() && assigned(data().projectId))))
+      );
+      allow update: if isFinance() && stampedUpdate() && softDeleteOk() && noRestore();
+      allow delete: if false;
+    }
+
+    // ================= accounting =================
+
+    match /account_transactions/{id} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow write: if false;          // D-07: only posting functions
+    }
+
+    function transferOk(d) {
+      return datesConsistent(d) && isPositiveMoney(d.amountPaise)
+        && d.kind in ['transfer', 'drawing', 'capital', 'loan_in', 'loan_repay'];
+    }
+    match /account_transfers/{id} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow create: if isFinance() && stampedCreate() && hasNone(postingFields())
+        && transferOk(data()) && monthOpenForCreate();
+      allow update: if isFinance() && stampedUpdate() && untouched(postingFields())
+        && transferOk(data()) && monthOpenForUpdate() && softDeleteOk() && noRestore();
+      allow delete: if false;
+    }
+
+    // Adjustments correct locked months by posting into an open month (§11A.4).
+    match /adjustments/{id} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow create: if isFinance() && stampedCreate() && createdPending() && hasNone(postingFields())
+        && datesConsistent(data()) && monthOpenForCreate()
+        && data().amountPaise is int && data().reason is string && data().reason != '';
+      allow update, delete: if false;
+    }
+
+    match /export_logs/{id} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow write: if false;          // the export callable writes these
+    }
+  }
+}

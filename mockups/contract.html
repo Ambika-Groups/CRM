@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#F5F5F5">
+<title>Contract preview · Ambika Group CRM (mockup)</title>
+<script>(function(){var t=null;try{var q=new URLSearchParams(location.search).get('theme');t=(q==='light'||q==='dark')?q:localStorage.getItem('ag-theme');}catch(e){}if(t!=='light'&&t!=='dark'){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',t);})();</script>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<script src="mockup.js" defer></script>
+<style>
+  .preview-layout { display: grid; gap: var(--space-4); align-items: start; }
+  @media (min-width: 1440px) { .preview-layout { grid-template-columns: minmax(0, 1fr) 320px; } }
+  @media (min-width: 600px) and (max-width: 1439px) { .preview-layout > aside { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); } }
+  .paper-frame { background: var(--color-page); border: 1px solid var(--color-divider); padding: var(--space-2); overflow-x: auto; }
+  @media (min-width: 600px) { .paper-frame { padding: var(--space-6); } }
+  /* Always-light A4 document (design-tokens §7). */
+  .paper { max-width: 794px; min-width: 300px; margin: 0 auto; background: #FFFFFF; color: #1F1F1F; padding: 28px 22px;
+    font-size: 12px; line-height: 19px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+  @media (min-width: 600px) { .paper { padding: 48px 52px; font-size: 13px; line-height: 20px; } }
+  .paper .muted { color: #5F5F5F; }
+  .paper .rule { height: 3px; background: #C62828; margin-bottom: 20px; }
+  .paper h2 { font-size: 18px; line-height: 24px; font-weight: 600; text-align: center; letter-spacing: 0.02em; }
+  .paper h3 { font-size: 13px; line-height: 20px; font-weight: 600; margin: 20px 0 6px; }
+  .paper p { margin: 0 0 8px; }
+  .paper .meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin: 12px 0 20px; color: #5F5F5F; }
+  .paper .parties { display: grid; gap: 12px; padding: 12px 0; border-top: 1px solid #E0E0E0; border-bottom: 1px solid #E0E0E0; }
+  @media (min-width: 600px) { .paper .parties { grid-template-columns: 1fr 1fr; } }
+  .paper table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .paper th { text-align: left; font-weight: 500; color: #5F5F5F; font-size: 11px; border-bottom: 1px solid #1F1F1F; padding: 6px; }
+  .paper td { padding: 6px; border-bottom: 1px solid #E0E0E0; }
+  .paper .r { text-align: right; white-space: nowrap; }
+  .paper tfoot td { font-weight: 600; border-top: 1px solid #1F1F1F; border-bottom: 3px solid #C62828; }
+  .paper ol.clauses { padding-left: 18px; margin: 0; }
+  .paper ol.clauses li { margin-bottom: 8px; }
+  .paper .edited { border-left: 3px solid #C62828; padding-left: 8px; }
+  .paper .signs { display: grid; gap: 24px; margin-top: 32px; }
+  @media (min-width: 600px) { .paper .signs { grid-template-columns: 1fr 1fr; } }
+  .paper .signs div { padding-top: 40px; border-bottom: 1px solid #1F1F1F; }
+  .paper .signs span { display: block; padding-top: 4px; color: #5F5F5F; }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+  .steps li { display: flex; gap: var(--space-3); align-items: center; font-size: var(--text-small); color: var(--color-text-secondary); }
+  .steps .dot { width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid var(--color-input-border); flex: none; }
+  .steps li.done { color: var(--color-text); }
+  .steps li.done .dot { color: var(--color-success); border-color: var(--color-success); }
+  .steps li.now { color: var(--color-text); font-weight: var(--weight-label); }
+  .steps li.now .dot { border-color: var(--color-brand); color: var(--color-brand); }
+</style>
+</head>
+<body data-page="contracts" data-title="Contract preview" data-crumbs="Contracts|Verma House construction agreement" data-role="owner" class="has-action-bar">
+
+<main class="content">
+  <div class="page-head stack">
+    <div class="heading">
+      <span class="sample-tag">Sample data</span>
+      <h1>Construction agreement: Verma House</h1>
+      <p class="sub">With Neeraj Verma · <span class="badge warning"><span data-icon="clock"></span>Under review</span> · 1 clause changed for this contract</p>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-secondary" type="button"><span data-icon="edit"></span>Edit</button>
+      <button class="btn btn-secondary" type="button"><span data-icon="download"></span>Download PDF</button>
+      <button class="btn btn-destructive" type="button" data-open="confirm-discard"><span data-icon="trash"></span>Discard draft</button>
+      <div class="action-bar">
+        <button class="btn btn-primary" type="button"><span data-icon="check"></span>Approve contract</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="banner info" style="margin-bottom:var(--space-4)"><span data-icon="info"></span>
+    <span class="text">This wording comes from a sample template. <b>Your advocate must review every template before it is used</b> (spec §8A.1).</span></div>
+
+  <div class="preview-layout">
+    <div class="paper-frame">
+      <article class="paper" aria-label="Contract preview, A4">
+        <div class="rule"></div>
+        <h2>RESIDENTIAL CONSTRUCTION AGREEMENT</h2>
+        <div class="meta"><span>Agreement no.: <i>given on approval</i></span><span>Lucknow, 25 Oct 2026</span></div>
+
+        <section class="parties">
+          <div><b>Ambika Group</b> ("the Contractor")<div class="muted">[Registered address to be confirmed], Lucknow<br>PAN ABCDE1234F (sample) · GSTIN 09ABCDE1234F1Z5 (sample)</div></div>
+          <div><b>Neeraj Verma</b> ("the Owner")<div class="muted">House no. 3/112, Vikas Nagar, Lucknow 226022<br>PAN XXXXX0000X (sample) · +91 94150 00000</div></div>
+        </section>
+
+        <h3>1. Scope of work</h3>
+        <p>Construction of a ground-plus-two (G+2) residential house on plot no. 27, Sector 6, Gomti Nagar Extension, Lucknow, built-up area 2,450 sq ft, as per the approved map and the bill of quantities attached as Annexure A.</p>
+
+        <h3>2. Contract value</h3>
+        <p>Lump sum of <b>₹48,50,000</b> (Rupees Forty-Eight Lakh Fifty Thousand only), plus GST as applicable. The Contractor supplies materials, labour and equipment unless Annexure B says otherwise.</p>
+
+        <h3>3. Payment schedule</h3>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Stage</th><th class="r">Share</th><th class="r">Amount (₹)</th></tr></thead>
+            <tbody id="schedule"></tbody>
+            <tfoot><tr><td>Total</td><td class="r">100%</td><td class="r" id="sched-total"></td></tr></tfoot>
+          </table>
+        </div>
+        <p class="muted" style="margin-top:6px">Each stage is invoiced when it is complete and certified by the Owner's engineer.</p>
+
+        <h3>4. Time and delay</h3>
+        <div class="edited">
+          <p>Work starts on 1 Nov 2026 and completes by 31 Oct 2027. If the Contractor is late for reasons within its control, it pays <b>₹2,000 per day</b> of delay, up to <b>5% of the contract value (₹2,42,500)</b>.</p>
+          <p class="muted" style="font-size:11px">Changed for this contract: the template says ₹1,500 per day.</p>
+        </div>
+
+        <h3>5. Other terms</h3>
+        <ol class="clauses">
+          <li>Retention: 5% of each stage payment is held until the end of the defect liability period of 12 months after handover.</li>
+          <li>Variations and extra work are priced at the rates in Annexure C, or agreed in writing before the work is done.</li>
+          <li>Safety, insurance and labour-law compliance on site are the Contractor's responsibility.</li>
+          <li>Force majeure, termination, and dispute resolution by arbitration under the Arbitration and Conciliation Act, 1996. Courts at Lucknow have jurisdiction.</li>
+        </ol>
+
+        <div class="signs">
+          <div><span>For Ambika Group, authorised signatory</span></div>
+          <div><span>Neeraj Verma, Owner</span></div>
+          <div><span>Witness 1: name and address</span></div>
+          <div><span>Witness 2: name and address</span></div>
+        </div>
+        <p class="muted" style="margin-top:20px;font-size:11px;text-align:center">Stamp paper / e-stamp details are recorded after signing · Page 1 of 3</p>
+      </article>
+    </div>
+
+    <aside class="grid">
+      <section class="card">
+        <h2 class="card-title">Steps to a signed contract</h2>
+        <ol class="steps">
+          <li class="done"><span class="dot"><span data-icon="check" data-icon-class="icon-sm"></span></span>Draft written</li>
+          <li class="now"><span class="dot"><span data-icon="clock" data-icon-class="icon-sm"></span></span>Owner approves (you are here)</li>
+          <li><span class="dot"></span>Send to Neeraj Verma</li>
+          <li><span class="dot"></span>Print, sign, upload the signed copy</li>
+          <li><span class="dot"></span>Active: payment stages feed the bills</li>
+        </ol>
+      </section>
+      <section class="card">
+        <h2 class="card-title">Linked</h2>
+        <dl class="kv small">
+          <dt>Project</dt><dd><a href="#">Verma House, Gomti Nagar Extension</a> (planned)</dd>
+          <dt>From quote</dt><dd><a href="#">AG/Q/2026-27/0009 (Rev 2)</a></dd>
+          <dt>Template</dt><dd>Residential, version 1</dd>
+        </dl>
+      </section>
+      <section class="card">
+        <h2 class="card-title">Signed copy</h2>
+        <div class="empty" style="padding:var(--space-4)">
+          <span data-icon="file"></span>
+          <b>No signed copy yet.</b>
+          <p class="small">After both sides sign the printed copy, upload a scan here with the signing date and witness names.</p>
+        </div>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<div class="scrim" id="confirm-discard" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="cd-title">
+    <h2 id="cd-title">Discard the draft agreement with Neeraj Verma?</h2>
+    <p>The draft and the clause change you made will be removed. The quote and the project stay as they are. You can start a new draft from the quote at any time.</p>
+    <div class="dialog-actions">
+      <button class="btn btn-secondary" type="button" data-close="confirm-discard">Keep it</button>
+      <button class="btn btn-destructive" type="button" data-close="confirm-discard"><span data-icon="trash"></span>Discard draft</button>
+    </div>
+  </div>
+</div>
+
+<script>
+window.agPage = function () {
+  var stages = [["Booking", 10], ["Plinth", 15], ["Slabs", 25], ["Brickwork", 15], ["Plaster", 15], ["Finishing", 15], ["Handover", 5]];
+  var value = 4850000, total = 0;
+  document.getElementById("schedule").innerHTML = stages.map(function (s) {
+    var amt = value * s[1] / 100; total += amt;
+    return "<tr><td>" + s[0] + '</td><td class="r">' + s[1] + '%</td><td class="r">' + agMoney(amt).replace("₹", "") + "</td></tr>";
+  }).join("");
+  document.getElementById("sched-total").textContent = agMoney(total).replace("₹", "");
+};
+</script>
+</body>
+</html>

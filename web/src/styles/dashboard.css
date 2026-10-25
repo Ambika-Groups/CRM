@@ -1,0 +1,72 @@
+/* Dashboard (spec §11.1, §11.1a) in the brand.md v4.1 look: KPI and chart cards get the 600 ms first-load reveal;
+   the spotlight glow is on KPI cards (v4.css). Nothing else on the dashboard moves. */
+.dash-head .sub { margin-top: var(--space-1); }
+.period-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-bottom: var(--space-6); }
+.period-bar .segmented button { min-height: 40px; }
+.period-custom { display: inline-flex; align-items: center; gap: var(--space-2); }
+.filter-inline { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-small); }
+.filter-inline .select { min-height: 40px; max-width: 220px; }
+.input-sm.select { max-width: 220px; }
+
+.dash-kpis { display: grid; gap: var(--space-4); grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: var(--space-4); }
+@media (min-width: 768px) { .dash-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1280px) { .dash-kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.kpi-link { color: inherit; text-decoration: none; display: block; }
+/* A KPI never truncates (owner dashboard at 1280, five across): the figure scales with the card and may wrap. */
+.dash-kpis .kpi, .dash-pair .kpi { container-type: inline-size; }
+.dash-kpis .kpi .value, .dash-pair .kpi .value { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word;
+  font-size: clamp(18px, 15cqi, var(--text-kpi-lg)); line-height: 1.2; }
+.trend-line { display: inline-flex; align-items: center; gap: var(--space-1); }
+.lazy-card { min-height: 320px; }
+.kpi-link:hover { border-color: var(--color-brand); }
+.kpi-link:hover .label { color: var(--color-brand); }
+.kpi .value.tone-bad, .tone-bad { color: var(--color-error); }
+.kpi .value.tone-good { color: var(--color-success); }
+.dash-pair { margin-bottom: var(--space-4); gap: var(--space-4); }
+
+.dash-grid { display: grid; gap: var(--space-4); grid-template-columns: minmax(0, 1fr); margin-bottom: var(--space-4); }
+@media (min-width: 1024px) { .dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dash-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 768px) and (max-width: 1023px) { .dash-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.dash-card { min-width: 0; }
+.dash-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); }
+.dash-card-head .card-title { margin-bottom: 0; flex: 1 1 auto; }
+.dash-card-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.echart { width: 100%; min-width: 0; }
+.dash-card { animation: ag-rise var(--duration-reveal) var(--easing-standard) both; }
+@media (prefers-reduced-motion: reduce) { .dash-card { animation: none; } }
+
+.crumbs-line { font-size: var(--text-small); margin-bottom: var(--space-2); }
+.crumbs-line [aria-current="page"] { font-weight: var(--weight-label); text-decoration: none; color: var(--color-text); }
+.over-budget { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-sm); border: 1px solid var(--color-error); color: var(--color-error); }
+.over-budget ul { margin: var(--space-1) 0 0; padding-left: var(--space-5); color: var(--color-text); }
+.over-budget b { margin-left: var(--space-2); }
+
+.po-list, .rank-list, .deadline-list, .activity-list, .link-list { list-style: none; margin: 0; padding: 0; }
+.po-list li { padding: var(--space-3) 0; border-bottom: 1px solid var(--color-divider); }
+.po-list li:last-child { border-bottom: 0; }
+.po-head { display: flex; justify-content: space-between; gap: var(--space-2); align-items: center; }
+.po-bars { display: grid; gap: var(--space-2); margin-top: var(--space-2); }
+.po-bar .bar { margin-top: 2px; }
+.bar { height: 8px; border-radius: var(--radius-pill); background: var(--color-divider); overflow: hidden; }
+.bar span { display: block; height: 100%; border-radius: var(--radius-pill); background: var(--color-text-secondary); }
+.bar.progress span { background: var(--color-accent); }
+.bar.bar-bad span { background: var(--color-error); }
+.rank-list li, .deadline-list li, .activity-list li { display: flex; justify-content: space-between; gap: var(--space-3); align-items: baseline; padding: var(--space-2) 0; border-bottom: 1px solid var(--color-divider); }
+.rank-list li:last-child, .deadline-list li:last-child, .activity-list li:last-child { border-bottom: 0; }
+ol.rank-list { counter-reset: r; }
+ol.rank-list li::before { counter-increment: r; content: counter(r); font-family: var(--font-mono); color: var(--color-text-secondary); margin-right: var(--space-2); }
+ol.rank-list li a { flex: 1; }
+.deadline-list li, .activity-list li { justify-content: flex-start; flex-wrap: wrap; }
+.deadline-list a, .activity-list a { flex: 1 1 200px; }
+.dl-date { font-family: var(--font-mono); font-size: var(--text-caption); color: var(--color-text-secondary); min-width: 92px; }
+.is-overdue .dl-date { color: var(--color-error); }
+.link-list li { padding: var(--space-1) 0; font-size: var(--text-small); }
+.st-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.site-today .card-title { margin-bottom: var(--space-3); }
+.demo-data summary { cursor: pointer; }
+.dash-note { margin-top: var(--space-6); }
+
+/* Two labelled figures side by side; they wrap when the card is narrow (project Overview, cash and bank). */
+.two-figures { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.two-figures dd.big { font-size: 22px; line-height: 28px; overflow-wrap: anywhere; }
+.lazy-pair { min-height: 112px; }

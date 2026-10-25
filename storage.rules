@@ -1,0 +1,137 @@
+rules_version = '2';
+
+// Ambika Group CRM: Cloud Storage Security Rules. DRAFT for Phase 0 (not yet emulator-tested).
+// Paths: docs/data-model.md §11. Access mirrors the Firestore read matrix (data-model §12).
+// Nothing is public. Shared PDFs are streamed by the share-link function (D-23).
+// Cross-service firestore.get()/exists() needs the Storage service agent to have Firestore read access;
+// the Firebase console grants this on first deploy of rules that use it.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() { return request.auth != null && request.auth.token.role is string; }
+    function uid() { return request.auth.uid; }
+    function hasRole(roles) { return signedIn() && request.auth.token.role in roles; }
+    function isFinance() { return hasRole(['owner', 'accountant']); }
+    function seesAllProjects() { return hasRole(['owner', 'accountant', 'viewer', 'ca']); }
+    function isSiteRole() { return hasRole(['pm', 'supervisor']); }
+
+    function assigned(pid) {
+      return uid() in firestore.get(/databases/(default)/documents/projects/$(pid)).data.assignedUsers;
+    }
+    function siteRoleOn(pid) { return isSiteRole() && assigned(pid); }
+
+    // §4: images and PDFs only, max 10 MB. Images are compressed in the client before upload.
+    function validUpload() {
+      return request.resource != null
+        && request.resource.size < 10 * 1024 * 1024
+        && (request.resource.contentType.matches('image/(jpeg|png|webp|heic|heif)')
+            || request.resource.contentType == 'application/pdf');
+    }
+    // Uploads are write-once: replacing a bill photo creates a new file, so evidence isn't overwritten.
+    function isNewFile() { return resource == null; }
+
+    // ---------- project files ----------
+
+    // Expense bill photos. Viewers see totals only, not bills (open question I3 default).
+    // Path is deterministic: the client writes it into billPaths before upload (Phase 1 note P1-02).
+    match /projects/{pid}/expenses/{expenseId}/{file} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']) || siteRoleOn(pid);
+      allow create: if (isFinance() || siteRoleOn(pid)) && validUpload() && isNewFile();
+      allow update, delete: if false;
+    }
+
+    // Attendance selfies (§6.3), one per worker per day.
+    match /projects/{pid}/attendance/{date}/{file} {
+      allow read: if isFinance() || siteRoleOn(pid);
+      allow create: if (isFinance() || siteRoleOn(pid)) && validUpload()
+        && request.resource.contentType.matches('image/.*');
+      allow update, delete: if false;
+    }
+
+    // DPR and site photos.
+    match /projects/{pid}/dpr/{date}/{file} {
+      allow read: if hasRole(['owner', 'accountant', 'viewer']) || siteRoleOn(pid);
+      allow create: if (isFinance() || siteRoleOn(pid)) && validUpload() && isNewFile();
+      allow update, delete: if false;
+    }
+
+    // Stock challans, machinery meter photos and other site evidence.
+    match /projects/{pid}/site/{kind}/{file} {
+      allow read: if hasRole(['owner', 'accountant', 'viewer', 'ca']) || siteRoleOn(pid);
+      allow create: if (isFinance() || siteRoleOn(pid)) && validUpload() && isNewFile();
+      allow update, delete: if false;
+    }
+
+    // Project documents. Restricted / finance documents go under finance/.
+    match /projects/{pid}/documents/{docId}/{file} {
+      allow read: if seesAllProjects() && !hasRole(['ca']) || siteRoleOn(pid);
+      allow create: if (isFinance() || siteRoleOn(pid)) && validUpload() && isNewFile();
+      allow update, delete: if false;
+    }
+    match /projects/{pid}/finance/{docId}/{file} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow create: if isFinance() && validUpload() && isNewFile();
+      allow update, delete: if false;
+    }
+
+    // ---------- people and parties ----------
+
+    match /workers/{workerId}/photo.jpg {
+      allow read: if hasRole(['owner', 'accountant', 'pm', 'supervisor']);
+      allow write: if hasRole(['owner', 'accountant', 'pm']) && validUpload()
+        && request.resource.contentType.matches('image/.*');
+    }
+    // D-22: ID proofs and bank documents — owner and accountant only.
+    match /workers/{workerId}/kyc/{file} {
+      allow read: if isFinance();
+      allow create: if isFinance() && validUpload() && isNewFile();
+      allow update, delete: if false;
+    }
+
+    match /vendors/{vendorId}/bills/{file} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow create: if isFinance() && validUpload() && isNewFile();
+      allow update, delete: if false;
+    }
+
+    match /clients/{clientId}/{file} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow create: if isFinance() && validUpload() && isNewFile();
+      allow update, delete: if false;
+    }
+
+    // Payment proofs, signed agreements, stamp certificates, tender documents.
+    match /finance/{kind}/{docId}/{file} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow create: if isFinance() && validUpload() && isNewFile();
+      allow update, delete: if false;
+    }
+
+    // ---------- company and generated files ----------
+
+    // Logo, signature, stamp: everyone signed in reads (shown in the app header and previews).
+    match /company/{file} {
+      allow read: if signedIn();
+      allow write: if hasRole(['owner']) && validUpload();
+    }
+
+    // PDFs rendered by Cloud Functions (invoices, quotations, agreements, receipts, payout sheets).
+    match /generated/{docType}/{docId}/{file} {
+      allow read: if hasRole(['owner', 'accountant', 'ca'])
+        || (docType in ['payout_sheet', 'dpr'] && hasRole(['pm']));
+      allow write: if false;
+    }
+
+    // CA exports, written by the export function.
+    match /exports/{exportId}/{file} {
+      allow read: if hasRole(['owner', 'accountant', 'ca']);
+      allow write: if false;
+    }
+
+    // Firestore backups live in a separate bucket with no client access.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

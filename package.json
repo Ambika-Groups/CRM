@@ -1,0 +1,24 @@
+{
+  "name": "ambika-crm",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Ambika Group CRM (spec v1.4). Workspaces: packages/core (domain logic), web (Next.js static export), functions (Cloud Functions).",
+  "workspaces": [
+    "packages/core",
+    "web",
+    "functions"
+  ],
+  "scripts": {
+    "test": "npm run test -w @ag/core",
+    "typecheck": "npm run typecheck -w @ag/core && npm run typecheck -w web",
+    "build:web": "npm run build -w web",
+    "dev": "npm run dev -w web",
+    "ui:check": "node tools/ui-check.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "axe-core": "^4.14.0"
+  }
+}

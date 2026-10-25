@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#F5F5F5">
+<title>Home · Ambika Group CRM (mockup)</title>
+<script>(function(){var t=null;try{var q=new URLSearchParams(location.search).get('theme');t=(q==='light'||q==='dark')?q:localStorage.getItem('ag-theme');}catch(e){}if(t!=='light'&&t!=='dark'){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',t);})();</script>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<script src="mockup.js" defer></script>
+<style>
+  .greeting { color: var(--color-text-secondary); }
+  .dash-grid { display: grid; gap: var(--space-4); margin-top: var(--space-4); }
+  @media (min-width: 1024px) { .dash-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
+  .donut-wrap { display: grid; gap: var(--space-6); align-items: center; }
+  @media (min-width: 600px) { .donut-wrap { grid-template-columns: 220px minmax(0, 1fr); } }
+  .donut-wrap svg { margin: 0 auto; }
+  .proj { display: grid; gap: var(--space-2); }
+  .proj + .proj { margin-top: var(--space-5); padding-top: var(--space-5); border-top: 1px solid var(--color-divider); }
+  .proj-head { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: baseline; }
+  .proj-head a { font-weight: var(--weight-label); color: var(--color-text); text-decoration: none; }
+  .proj-head .badge { margin-left: auto; }
+  .proj-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-4); font-size: var(--text-small); }
+  .ready-score { display: flex; align-items: baseline; gap: var(--space-2); }
+  .ready-score b { font-size: var(--text-kpi); line-height: var(--leading-kpi); font-weight: var(--weight-heading); font-variant-numeric: tabular-nums; }
+  .money-pair { display: grid; gap: var(--space-4); }
+  @media (min-width: 600px) { .money-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .quick { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .site-count { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2) var(--space-3); font-size: var(--text-small); }
+  .site-count a { color: var(--color-text); }
+</style>
+</head>
+<body data-page="dashboard" data-title="Home" data-crumbs="Home" data-role="owner" class="has-action-bar">
+
+<main class="content">
+  <div class="page-head">
+    <div class="heading">
+      <span class="sample-tag">Sample data</span>
+      <h1>Good morning, Anil</h1>
+      <p class="sub greeting">45 workers on 3 sites today. ₹6,66,500 to pay this week. 5 entries waiting for your approval.</p>
+    </div>
+    <div class="page-actions">
+      <div class="segmented" role="group" aria-label="Period" data-single>
+        <button aria-pressed="false">Today</button><button aria-pressed="false">Week</button><button aria-pressed="true">Month</button><button aria-pressed="false">FY</button><button aria-pressed="false">Custom</button>
+      </div>
+      <!-- The one main action on this screen: pinned to the bottom on phones, here on larger screens. -->
+      <div class="action-bar">
+        <a class="btn btn-primary" href="expenses.html"><span data-icon="plus"></span>Add expense</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top KPIs: spec §11.1 list (decisions D-11). Neutral cards, one number each, all clickable. -->
+  <section class="kpis" aria-label="Key figures for October 2026">
+    <a class="kpi" href="project.html"><div class="label">Active projects</div><div class="value">3</div><div class="trend">1 completed this year</div></a>
+    <a class="kpi" href="project.html"><div class="label">Delayed projects</div><div class="value">1</div><div class="trend">Gomti Residency, 24 days</div></a>
+    <a class="kpi" href="expenses.html"><div class="label">Total expense</div><div class="value money">₹18,42,350</div><div class="trend">Oct 2026 · FY ₹71,26,900</div></a>
+    <a class="kpi" href="invoice.html"><div class="label">Total billed</div><div class="value money">₹8,58,450</div><div class="trend">1 bill sent · RA bill 3 is still a draft</div></a>
+    <a class="kpi" href="#"><div class="label">Money received</div><div class="value money">₹24,75,000</div><div class="trend">3 payments, largest ₹16,50,000</div></a>
+    <a class="kpi" href="#"><div class="label">To receive</div><div class="value money">₹21,40,560</div><div class="trend">₹8,10,000 overdue</div></a>
+    <a class="kpi" href="#"><div class="label">Net profit</div><div class="value money">₹6,32,650</div><div class="trend">Received − expense</div></a>
+    <a class="kpi" href="attendance.html"><div class="label">Wages due</div><div class="value money">₹1,84,300</div><div class="trend">Earned, not yet paid</div></a>
+  </section>
+
+  <div class="section">
+    <h2 class="section-title">Quick actions</h2>
+    <div class="quick">
+      <a class="btn btn-secondary" href="attendance.html"><span data-icon="users"></span>Mark attendance</a>
+      <a class="btn btn-secondary" href="invoice.html"><span data-icon="file"></span>New bill</a>
+      <a class="btn btn-secondary" href="#"><span data-icon="file"></span>New quote</a>
+      <a class="btn btn-secondary" href="#"><span data-icon="rupee"></span>Record money received</a>
+      <a class="btn btn-secondary" href="#"><span data-icon="download"></span>Send to CA</a>
+    </div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="grid">
+      <!-- Expense drill-down donut (spec §11.1 widget 2). -->
+      <section class="card">
+        <h2 class="card-title">Where the money went <a class="aside" href="expenses.html">Open breakdown</a></h2>
+        <div class="donut-wrap">
+          <div id="donut"></div>
+          <ul class="chart-legend" id="donut-legend"></ul>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Projects</h2>
+        <div class="proj">
+          <div class="proj-head"><a href="project.html">Shiv Nagar CC Road</a><span class="muted small">Government · Nagar Nigam Lucknow</span>
+            <span class="badge success"><span data-icon="check-circle"></span>On track</span></div>
+          <div class="bar-row"><span class="small">Work done</span><span class="small num">62%</span><div class="bar progress"><span style="width:62%"></span></div></div>
+          <div class="bar-row"><span class="small">Spent of budget</span><span class="small num">₹86,40,200 of ₹1,48,00,000</span><div class="bar"><span style="width:58%"></span></div></div>
+        </div>
+        <div class="proj">
+          <div class="proj-head"><a href="#">Gomti Residency, Block B</a><span class="muted small">Apartments · 24 flats</span>
+            <span class="badge error"><span data-icon="alert"></span>Delayed 24 days</span></div>
+          <div class="bar-row"><span class="small">Work done</span><span class="small num">35%</span><div class="bar progress"><span style="width:35%"></span></div></div>
+          <div class="bar-row"><span class="small">Spent of budget</span><span class="small num">₹1,21,60,000 of ₹3,20,00,000</span><div class="bar"><span style="width:38%"></span></div></div>
+        </div>
+        <div class="proj">
+          <div class="proj-head"><a href="#">Sharma Villa, Indira Nagar</a><span class="muted small">House · G+2</span>
+            <span class="badge warning"><span data-icon="alert"></span>85% of budget used</span></div>
+          <div class="bar-row"><span class="small">Work done</span><span class="small num">78%</span><div class="bar progress"><span style="width:78%"></span></div></div>
+          <div class="bar-row"><span class="small">Spent of budget</span><span class="small num">₹38,90,500 of ₹46,00,000</span><div class="bar"><span style="width:85%"></span></div></div>
+        </div>
+      </section>
+
+      <div class="money-pair">
+        <section class="card">
+          <h2 class="card-title">To receive <span class="aside money">₹27,49,860</span></h2>
+          <dl class="kv">
+            <dt>Client dues</dt><dd>₹21,40,560</dd>
+            <dt><span class="term" title="Part of the bill held back by the client until the work is cleared.">Retention</span> held</dt><dd>₹4,12,800</dd>
+            <dt><span class="term" title="Tax deducted from a payment and paid to the government.">TDS</span> held</dt><dd>₹1,96,500</dd>
+          </dl>
+          <p class="hint"><span data-icon="info"></span>Retention: part of the bill the client holds back until the work is cleared.</p>
+        </section>
+        <section class="card">
+          <h2 class="card-title">To pay this week <span class="aside money">₹6,66,500</span></h2>
+          <dl class="kv">
+            <dt>Wages</dt><dd>₹1,84,300</dd>
+            <dt>Suppliers</dt><dd>₹3,86,200</dd>
+            <dt>Machine rent</dt><dd>₹96,000</dd>
+          </dl>
+        </section>
+      </div>
+    </div>
+
+    <div class="grid" style="align-content:start">
+      <section class="card">
+        <h2 class="card-title">Waiting for your approval</h2>
+        <ul class="list">
+          <li><span data-icon="receipt"></span><div class="grow">5 expenses<div class="meta">₹62,450 · 3 from Shiv Nagar, 2 from Sharma Villa</div></div><a class="small" href="expenses.html">Review</a></li>
+          <li><span data-icon="users"></span><div class="grow">1 wage-rate change<div class="meta">Suresh Pal, mistri: ₹750 → ₹800 a day</div></div><a class="small" href="#">Review</a></li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Workers today <span class="aside">45 of 52</span></h2>
+        <div class="site-count">
+          <a href="attendance.html">Shiv Nagar CC Road</a><span class="num">28 of 31</span>
+          <a href="#">Gomti Residency, Block B</a><span class="num">11 of 14</span>
+          <a href="#">Sharma Villa, Indira Nagar</a><span class="num">6 of 7</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Money in hand and bank</h2>
+        <dl class="kv">
+          <dt>Cash in hand</dt><dd>₹1,26,400</dd>
+          <dt>SBI current account</dt><dd>₹14,82,300</dd>
+          <dt>HDFC current account</dt><dd>₹6,10,950</dd>
+          <dt class="total">Total available</dt><dd class="total">₹22,19,650</dd>
+        </dl>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Ready for the CA</h2>
+        <div class="ready-score"><b>86%</b><span class="muted small">of October's entries are complete</span></div>
+        <ul class="list" style="margin-top:var(--space-3)">
+          <li><span data-icon="camera"></span><div class="grow small">3 expenses have no bill photo</div><a class="small" href="expenses.html">Fix</a></li>
+          <li><span data-icon="clock"></span><div class="grow small">5 entries waiting for approval</div><a class="small" href="expenses.html">Fix</a></li>
+          <li><span data-icon="users"></span><div class="grow small">1 site has no attendance for 24 Oct</div><a class="small" href="attendance.html">Fix</a></li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Coming up</h2>
+        <ul class="list">
+          <li><span data-icon="alert"></span><div class="grow">Bank guarantee expires<div class="meta">Shiv Nagar CC Road · 27 Nov 2026 · renew 30 days ahead</div></div></li>
+          <li><span data-icon="file"></span><div class="grow">Send <span class="term" title="Running bill: part-payment bill for work done so far.">RA bill</span> 3 (draft ready)<div class="meta">Nagar Nigam Lucknow · by 31 Oct 2026</div></div><a class="small" href="invoice.html">Open</a></li>
+          <li><span data-icon="calendar"></span><div class="grow">PWD tender closes<div class="meta">Drain work, Aliganj · 2 Nov 2026, 3:00 pm</div></div></li>
+          <li><span data-icon="contact"></span><div class="grow">2 enquiries to call back today<div class="meta">From the website</div></div></li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+window.agPage = function () {
+  var data = [
+    ["Labour", 612400, "var(--chart-1)"],
+    ["Materials", 846750, "var(--chart-2)"],
+    ["Commission", 45000, "var(--chart-3)"],
+    ["Machinery", 238600, "var(--chart-4)"],
+    ["Other", 99600, "var(--chart-5)"]
+  ];
+  var total = data.reduce(function (s, d) { return s + d[1]; }, 0);
+  document.getElementById("donut").innerHTML = agRings([{ r0: 62, r1: 100, segments: data.map(function (d) {
+    return { value: d[1], color: d[2], label: d[0] + " " + agMoney(d[1]) };
+  }) }], 220, { top: "October", value: agMoney(total), aria: "Expense by category, October 2026" });
+  document.getElementById("donut-legend").innerHTML = data.map(function (d) {
+    return '<li><span class="sw" style="background:' + d[2] + '"></span><a href="expenses.html" style="color:inherit">' + d[0] +
+      '</a><span class="money">' + agMoney(d[1]) + '</span><span class="pct">' + (100 * d[1] / total).toFixed(1) + "%</span></li>";
+  }).join("");
+};
+</script>
+</body>
+</html>
