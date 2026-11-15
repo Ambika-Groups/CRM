@@ -1,4 +1,5 @@
 "use client";
+import { sendInBackground } from "@/lib/queue";
 import type { CommandArgs, CommandName, CommandResult, QuerySpec, Where } from "@ag/core";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { resolveConfig } from "./config";
@@ -159,6 +160,18 @@ export function usePaged<T extends { id: string }>(collection: string, spec: Omi
 export function useRun() {
   const { source } = useData();
   return useCallback(<N extends CommandName>(name: N, args: CommandArgs<N>, requestId?: string): Promise<CommandResult<N>> => source.run(name, args, requestId), [source]);
+}
+
+/**
+ * Save without making the person wait (lib/queue.ts `sendInBackground`): returns at once; the top bar shows "Saving",
+ * then "Synced", or keeps the change with the reason if the server refused it. `label` is what the person sees in that
+ * list ("Expense, 14 Nov, ₹2,400"). `key` makes a later save of the same thing replace an earlier one still waiting.
+ */
+export function useBackgroundRun() {
+  const { source } = useData();
+  return useCallback(<N extends CommandName>(name: N, args: CommandArgs<N>, label: string, key?: string): void => {
+    sendInBackground((n, a, id) => source.run(n, a, id), name, args, label, key);
+  }, [source]);
 }
 
 /** Online/offline state for the top bar indicator and the offline strip. */

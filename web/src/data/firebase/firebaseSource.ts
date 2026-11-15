@@ -5,20 +5,28 @@
  * `command` callable, which runs the same core code inside a transaction (posting, numbering, audit).
  *
  * Screens read through the same calls as the demo (rule 9: lists a page at a time, totals from counts and rollups).
- * Data is read again after this person's own commands and when the app returns to the foreground.
+ *
+ * Reads are cache-first (D-51: the free plan allows 50,000 reads a day). Something read from the server stays good for
+ * five minutes: until then the same read is answered from the copy on this device, which costs nothing. After this
+ * person's own save, the server says which collections changed and only those are read again. Offline, everything
+ * comes from the device.
  */
 import {
-  assertLimit, CommandError, seedCategories, SMALL_COLLECTIONS, type CommandArgs, type CommandName, type CommandResult, type Page, type QuerySpec, type Where,
+  assertLimit, CommandError, FreshMap, seedCategories, SMALL_COLLECTIONS, type CommandArgs, type CommandName, type CommandResult, type Page, type QuerySpec, type Where,
 } from "@ag/core";
 import {
-  clearIndexedDbPersistence, collection, doc, documentId, getCountFromServer, getDoc, getDocs, getDocsFromCache, limit as fsLimit, orderBy, query as fsQuery,
-  serverTimestamp, startAfter, terminate, updateDoc, where as fsWhere, type DocumentData, type QueryConstraint,
+  clearIndexedDbPersistence, collection, doc, documentId, getCountFromServer, getDocFromCache, getDocFromServer, getDocsFromCache, getDocsFromServer, limit as fsLimit, orderBy,
+  query as fsQuery, serverTimestamp, startAfter, terminate, updateDoc, where as fsWhere, type DocumentData, type DocumentReference, type DocumentSnapshot, type Query,
+  type QueryConstraint, type QuerySnapshot,
 } from "firebase/firestore";
 import { resolveConfig } from "../config";
 import { isSmallCollection, type AuthApi, type DataSource, type SampleApi, type Session, type SetupApi } from "../types";
 import { call, createClients, docData, isDenied, type Clients } from "./client";
 import { FirebaseAuth } from "./firebaseAuth";
 import { FirebaseSample, FirebaseSetup } from "./firebaseSetup";
+
+/** How long something read from the server is trusted before it is asked for again. */
+export const FRESH_MS = 5 * 60_000;
 
 const FINANCE_SETTINGS = ["company", "operations", "bank", "templates", "numbering", "deductionHeads"];
 const OPEN_SETTINGS = ["company", "operations"];
@@ -28,7 +36,7 @@ function commandError(e: unknown): Error {
   const err = e as { code?: string; message?: string; details?: { fields?: Record<string, string> } };
   const code = err?.code ?? "";
   if (code.endsWith("failed-precondition")) return new CommandError(err.message ?? "This could not be saved.", err.details?.fields ?? {});
-  if (code.endsWith("unavailable") || code.endsWith("deadline-exceeded") || !navigator.onLine) return new CommandError("No connection to the server. Nothing was saved. Try again when you are online.");
+  if (code.endsWith("unavailable") || code.endsWith("deadline-exceeded") || !navigator.onLine) return Object.assign(new CommandError("No connection to the server. Nothing was saved. Try again when you are online."), { retry: true });
   if (code.endsWith("not-found")) return new CommandError("Saving needs the CRM's server part, which is not connected yet. The owner connects it once (Setup & integrations shows how). Nothing was saved.");
   if (code.endsWith("unauthenticated")) return new CommandError("You were signed out. Sign in again.");
   if (code.endsWith("permission-denied")) return new CommandError("You can't do this.");
@@ -52,7 +60,9 @@ export class FirebaseSource implements DataSource {
   private fbAuth!: FirebaseAuth;
   private listeners = new Set<() => void>();
   private cached: Session | null = null;
-  private countCache = new Map<string, { at: number; n: number }>();
+  private countCache = new FreshMap<number>(FRESH_MS);
+  /** Each read (a document or a query) that came from the server: the device copy answers until it is stale. */
+  private fresh = new FreshMap(FRESH_MS);
   private hiddenAt = 0;
 
   async init(): Promise<void> {
@@ -61,13 +71,13 @@ export class FirebaseSource implements DataSource {
     this.clients = createClients(r.config, r.siteKey);
     this.fbAuth = new FirebaseAuth(this.clients, () => this.refreshSession(), () => this.clearLocal());
     this.auth = this.fbAuth;
-    this.sample = new FirebaseSample(this.clients);
+    this.sample = new FirebaseSample(this.clients, () => { this.refresh("*"); this.bump(); });
     this.setup = new FirebaseSetup(this.clients, this.fbAuth, () => this.fbAuth.currentUser()?.uid ?? "");
     await this.fbAuth.start();
     // Read again when the app comes back to the foreground after a while (other people have been working).
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) this.hiddenAt = Date.now();
-      else if (this.hiddenAt && Date.now() - this.hiddenAt > 30_000) { this.countCache.clear(); this.bump(); }
+      else if (this.hiddenAt && Date.now() - this.hiddenAt > 30_000) this.bump(); // reads older than five minutes are asked for again
     });
     window.addEventListener("online", () => this.bump());
   }
@@ -103,9 +113,47 @@ export class FirebaseSource implements DataSource {
 
   private ref(collectionPath: string, id: string) { return doc(this.clients.db, collectionPath, id); }
 
+  private isFresh(key: string): boolean { return this.fresh.has(key); }
+
+  /** Forget what is fresh for these collections ("*": everything), so the next read of them goes to the server. */
+  refresh(collections: readonly string[] | "*" = "*"): void {
+    this.fresh.forget(collections);
+    this.countCache.forget(collections);
+  }
+
+  /** One document: the device copy while it is fresh, else the server (and the device copy again if there is no connection). */
+  private async readDoc(collectionPath: string, id: string): Promise<DocumentSnapshot> {
+    const ref: DocumentReference = this.ref(collectionPath, id);
+    const key = `d:${collectionPath}/${id}`;
+    if (this.isFresh(key)) {
+      try { return await getDocFromCache(ref); } catch { /* not on the device after all: ask the server */ }
+    }
+    try {
+      const snap = await getDocFromServer(ref);
+      this.fresh.set(key, collectionPath, true);
+      return snap;
+    } catch (e) {
+      if (isDenied(e)) throw e;
+      try { return await getDocFromCache(ref); } catch { throw e; }
+    }
+  }
+
+  /** One query, the same way. */
+  private async readQuery(q: Query, key: string, collectionPath: string): Promise<QuerySnapshot> {
+    if (this.isFresh(key)) return getDocsFromCache(q);
+    try {
+      const snap = await getDocsFromServer(q);
+      this.fresh.set(key, collectionPath, true);
+      return snap;
+    } catch (e) {
+      if (isDenied(e)) throw e;
+      return getDocsFromCache(q);
+    }
+  }
+
   async get<T>(collectionPath: string, id: string): Promise<T | null> {
     try {
-      const s = await getDoc(this.ref(collectionPath, id));
+      const s = await this.readDoc(collectionPath, id);
       return s.exists() ? docData<T>(s.id, s.data()) : null;
     } catch (e) {
       if (isDenied(e)) return null;
@@ -115,7 +163,7 @@ export class FirebaseSource implements DataSource {
 
   async docStatus(collectionPath: string, id: string): Promise<"ok" | "missing" | "denied"> {
     try {
-      const s = await getDoc(this.ref(collectionPath, id));
+      const s = await this.readDoc(collectionPath, id);
       if (!s.exists() || (s.data() as DocumentData).isDeleted === true) return "missing";
       return "ok";
     } catch (e) {
@@ -144,26 +192,27 @@ export class FirebaseSource implements DataSource {
     const { filters, order } = this.constraints(spec);
     const cursor: QueryConstraint[] = [];
     if (spec.after) {
-      const at = await getDoc(this.ref(collectionPath, spec.after));
+      const at = await this.readDoc(collectionPath, spec.after);
       if (at.exists()) cursor.push(startAfter(at));
     }
     const tail = order.length ? [] : [orderBy(documentId())];
-    const snap = await getDocs(fsQuery(col, ...filters, ...order, ...tail, ...cursor, fsLimit(spec.limit + 1)));
+    const key = `q:${collectionPath}|${JSON.stringify([spec.where ?? [], spec.orderBy ?? [], spec.after ?? null, spec.limit])}`;
+    const snap = await this.readQuery(fsQuery(col, ...filters, ...order, ...tail, ...cursor, fsLimit(spec.limit + 1)), key, collectionPath);
     const more = snap.docs.length > spec.limit;
     const items = snap.docs.slice(0, spec.limit).map((d) => docData<T>(d.id, d.data()));
     const total = await this.countOf(collectionPath, spec.where ?? [], items.length + (more ? 1 : 0));
     return { items, next: more ? items[items.length - 1]?.id ?? null : null, total };
   }
 
-  /** The number of matching documents: a server count, remembered for 30 seconds; offline, what the device holds. */
+  /** The number of matching documents: a server count, remembered for five minutes (or until a save changes the collection); offline, what the device holds. */
   private async countOf(collectionPath: string, wheres: Where[], fallback: number): Promise<number> {
     const key = `${collectionPath}|${JSON.stringify(wheres)}`;
     const hit = this.countCache.get(key);
-    if (hit && Date.now() - hit.at < 30_000) return hit.n;
+    if (hit !== undefined) return hit;
     try {
       const q = fsQuery(collection(this.clients.db, collectionPath), ...wheres.map((w) => fsWhere(w.field, w.op, w.value)));
       const n = (await getCountFromServer(q)).data().count;
-      this.countCache.set(key, { at: Date.now(), n });
+      this.countCache.set(key, collectionPath, n);
       return n;
     } catch {
       try {
@@ -190,7 +239,7 @@ export class FirebaseSource implements DataSource {
     }
     if (collectionPath === "expense_categories") {
       let stored: { id: string }[] = [];
-      try { stored = (await getDocs(collection(this.clients.db, collectionPath))).docs.map((d) => docData<{ id: string }>(d.id, d.data())); } catch (e) { if (!isDenied(e)) throw e; }
+      try { stored = (await this.readQuery(collection(this.clients.db, collectionPath), `all:${collectionPath}`, collectionPath)).docs.map((d) => docData<{ id: string }>(d.id, d.data())); } catch (e) { if (!isDenied(e)) throw e; }
       const byId = new Map<string, unknown>(seedCategories().map((c) => [c.id, c]));
       for (const c of stored) byId.set(c.id, c);
       return [...byId.values()] as T[];
@@ -200,7 +249,7 @@ export class FirebaseSource implements DataSource {
       return me ? [me] : [];
     }
     try {
-      return (await getDocs(collection(this.clients.db, collectionPath))).docs.map((d) => docData<T>(d.id, d.data()));
+      return (await this.readQuery(collection(this.clients.db, collectionPath), `all:${collectionPath}`, collectionPath)).docs.map((d) => docData<T>(d.id, d.data()));
     } catch (e) {
       if (isDenied(e)) return [];
       throw e;
@@ -212,8 +261,9 @@ export class FirebaseSource implements DataSource {
   async run<N extends CommandName>(name: N, args: CommandArgs<N>, requestId?: string): Promise<CommandResult<N>> {
     if (!this.cached) throw new CommandError("Sign in first.");
     try {
-      const out = await call<unknown, { result: unknown }>(this.clients, "command")({ name, args, requestId: cleanRequestId(requestId) });
-      this.countCache.clear();
+      const out = await call<unknown, { result: unknown; touched?: string[] }>(this.clients, "command")({ name, args, requestId: cleanRequestId(requestId) });
+      // Only what this save changed is read again; the rest stays on the device copy.
+      this.refresh(out.touched ?? "*");
       this.bump();
       return out.result as CommandResult<N>;
     } catch (e) { throw commandError(e); }

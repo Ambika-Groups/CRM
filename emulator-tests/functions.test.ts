@@ -4,9 +4,11 @@
 import { seedDemo } from "@ag/core";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { initializeFirestore, Timestamp } from "firebase-admin/firestore";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { handleApi, type ApiDeps } from "../functions/src/api";
 import { executeCommand } from "../functions/src/command";
+import { cleanUp } from "../functions/src/maintenance";
 import { loadSample, removeSample, sampleStatus } from "../functions/src/sample";
 import {
   clearIntegration, handleEnquiry, recordBrowserTest, rotateWebsiteKey, saveIntegration, serverChecks, testIntegration, websiteKeyMatches,
@@ -15,7 +17,8 @@ import {
 const PROJECT = "demo-ambika";
 process.env.GCLOUD_PROJECT = PROJECT;
 const app = initializeApp({ projectId: PROJECT });
-const db = getFirestore(app);
+// REST, not gRPC: the same transport the server part uses on Netlify (functions/src/admin.ts), so these tests prove it.
+const db = initializeFirestore(app, { preferRest: true });
 db.settings({ ignoreUndefinedProperties: true });
 const auth = getAuth(app);
 
@@ -282,6 +285,46 @@ describe('sample data on an empty project (D-48)', () => {
     const audit = (await db.collection('audit_log').where('entity', '==', 'sampleData').get()).docs.map((d) => d.data());
     expect(audit.map((a) => a.action).sort()).toEqual(['load', 'remove']);
     expect(audit.every((a) => a.by === 'uOwner')).toBe(true);
+  });
+});
+
+describe("the server part's HTTP handler against a real database (D-51)", () => {
+  const deps = (uid: string): ApiDeps => ({
+    db, auth, origin: "https://crm.example.com", where: "emulator", now,
+    verifyIdToken: async (t) => { if (t !== "good") throw new Error("bad"); return { uid, auth_time: Math.floor(NOW.getTime() / 1000) - 60, email: "owner@example.com", email_verified: true }; },
+  });
+  const post = (name: string, data: unknown, token = "good") => ({ method: "POST", authorization: `Bearer ${token}`, appCheck: "", body: JSON.stringify({ name, data }) });
+
+  it("FN-36 a save through the handler writes the record and says which collections changed", async () => {
+    const r = await handleApi(post("command", { name: "createClient", args: { input: { name: "Handler Test Client", type: "individual", phone: "98390 55555" } }, requestId: "handler_req_1" }), deps("uOwner"));
+    expect(r.status).toBe(200);
+    const out = (r.body as { result: { result: string; touched: string[] } }).result;
+    expect((await db.doc(`clients/${out.result}`).get()).data()?.name).toBe("Handler Test Client");
+    expect(out.touched).toContain("clients");
+    expect(out.touched).toContain("audit_log");
+    // The same request again: the first result, nothing written twice, and "*" because it cannot tell what changed.
+    const again = await handleApi(post("command", { name: "createClient", args: { input: { name: "Handler Test Client", type: "individual", phone: "98390 55555" } }, requestId: "handler_req_1" }), deps("uOwner"));
+    expect((again.body as { result: { result: string; touched: string[] } }).result).toEqual({ result: out.result, touched: ["*"] });
+    expect((await db.collection("clients").where("name", "==", "Handler Test Client").get()).size).toBe(1);
+  });
+
+  it("FN-37 the handler refuses a role that may not do it, in plain words, and a forged token before anything runs", async () => {
+    const refused = await handleApi(post("command", { name: "createClient", args: { input: { name: "Nope", type: "individual", phone: "98390 55556" } }, requestId: "handler_req_2" }), deps("uViewer"));
+    expect(refused.status).toBe(400);
+    expect((refused.body as { error: { code: string; message: string } }).error.code).toBe("failed-precondition");
+    const forged = await handleApi(post("command", { name: "createClient", args: {}, requestId: "handler_req_3" }, "forged"), deps("uOwner"));
+    expect(forged.status).toBe(401);
+    expect((await db.collection("clients").where("name", "==", "Nope").get()).size).toBe(0);
+  });
+
+  it("FN-38 the nightly clean-up removes expired request records from the real database and keeps fresh ones", async () => {
+    await db.doc("command_requests/old_one").set({ uid: "uOwner", name: "x", expireAt: Timestamp.fromDate(new Date("2026-10-01T00:00:00Z")) });
+    await db.doc("command_requests/new_one").set({ uid: "uOwner", name: "x", expireAt: Timestamp.fromDate(new Date("2026-11-30T00:00:00Z")) });
+    const out = await cleanUp(db, now);
+    expect(out.removed.command_requests).toBe(1);
+    expect((await db.doc("command_requests/old_one").get()).exists).toBe(false);
+    expect((await db.doc("command_requests/new_one").get()).exists).toBe(true);
+    expect((await db.doc("system/maintenance").get()).data()?.lastRunAt).toBe(NOW.toISOString());
   });
 });
 

@@ -1,8 +1,8 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useOnline, useRun } from "@/data/DataProvider";
-import { discardQueued, flushQueue, useQueue } from "@/lib/queue";
+import { discardQueued, flushQueue, sendingCount, useQueue } from "@/lib/queue";
 import { Icon } from "./Icon";
 import { useToast } from "@/components/ui/feedback";
 
@@ -12,13 +12,15 @@ export function SyncState({ className = "", long = false }: { className?: string
   const online = useOnline();
   const queue = useQueue();
   const waiting = queue.length;
-  const warn = !online || waiting > 0;
+  const sending = online ? sendingCount(queue) : 0;
+  const saving = sending > 0 && sending === waiting;
+  const warn = !online || (waiting > 0 && !saving);
   const text = !online
     ? (waiting ? t("sync.offlineWaiting", { n: waiting }) : t("top.offline"))
-    : waiting ? t("sync.waiting", { n: waiting }) : long ? t("top.syncedLong") : t("top.synced");
+    : saving ? t("sync.saving", { n: sending }) : waiting ? t("sync.waiting", { n: waiting }) : long ? t("top.syncedLong") : t("top.synced");
   return (
-    <span className={`sync-state ${className}`} style={warn ? { color: "var(--color-warning)" } : undefined} role="status" data-sync-state={!online ? "offline" : waiting ? "waiting" : "synced"}>
-      <Icon name={!online ? "wifi-off" : waiting ? "clock" : "check-circle"} size={16} className="icon icon-sm" />
+    <span className={`sync-state ${className}`} style={warn ? { color: "var(--color-warning)" } : undefined} role="status" data-sync-state={!online ? "offline" : saving ? "saving" : waiting ? "waiting" : "synced"}>
+      <Icon name={!online ? "wifi-off" : saving ? "refresh" : waiting ? "clock" : "check-circle"} size={16} className="icon icon-sm" />
       {text}
     </span>
   );
@@ -35,13 +37,21 @@ export function SyncStrip() {
   const toast = useToast();
   const queue = useQueue();
   const busy = useRef(false);
-  const pending = queue.filter((q) => !q.error).length;
+  const pending = queue.filter((q) => !q.error).length - sendingCount(queue);
+  const [tick, setTick] = useState(0);
+
+  // Something is waiting (no connection to the server a moment ago, or a send that never came back): try again every half minute.
+  useEffect(() => {
+    if (!queue.some((q) => !q.error)) return;
+    const id = window.setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => window.clearInterval(id);
+  }, [queue]);
 
   useEffect(() => {
     if (!online || !pending || busy.current) return;
     busy.current = true;
     void flushQueue(run as never).then((n) => { if (n) toast(t("sync.sent", { n })); }).finally(() => { busy.current = false; });
-  }, [online, pending, run, toast, t]);
+  }, [online, pending, run, toast, t, tick]);
 
   const failed = queue.filter((q) => q.error);
   if (online && !failed.length) return null;

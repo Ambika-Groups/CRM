@@ -322,6 +322,7 @@ export const hi: Shape<typeof en> = {
     daysWorked: "काम के दिन", backToMarking: "हाज़िरी लगाने पर वापस",
   },
   sync: {
+    saving: "सेव हो रहा है…",
     waiting: "{{n}} भेजने बाकी", offlineWaiting: "ऑफ़लाइन · {{n}} बाकी", waitingHere: "{{n}} बदलाव इस फ़ोन पर रखे हैं।",
     sent: "{{n}} बदलाव भेज दिए गए।", discard: "हटाएँ",
   },

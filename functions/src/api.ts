@@ -78,7 +78,7 @@ export const ACTIONS: Record<string, Action> = {
     if (typeof data.name !== "string") throw new CommandError("This action isn't available.");
     if (typeof data.requestId !== "string" || !REQUEST_ID.test(data.requestId)) throw new CommandError("This request could not be read. Reload the page and try again.");
     const out = await executeCommand(db, auth, { uid: who.uid, name: data.name, args: data.args ?? {}, requestId: data.requestId }, now);
-    return { result: out.result ?? null };
+    return { result: out.result ?? null, touched: out.touched };
   },
 
   // ---------- Setup & integrations (D-48, D-49) ----------

@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { CommandError } from "@ag/core";
 import { compactKey, KEY_VARIABLE, resetRuntime, runtime, serviceAccountFromEnv } from "../src/admin";
 import { ACTIONS, handleApi, MAX_BODY, notConnected, type ApiDeps, type ApiRequest, type ApiResponse } from "../src/api";
+import { touchedBy } from "../src/command";
 import { CLEAN_BATCH, cleanUp } from "../src/maintenance";
 import { apiFunction, enquiryFunction, nightlyFunction } from "../src/netlify";
 import { ReauthRequired, resetAppCheckCache } from "../src/setup";
@@ -159,6 +160,14 @@ describe("the HTTP handler (api.ts)", () => {
     expect(resultOf(ok)).toEqual({ lines: [{ key: "database", ok: true, message: "The database answers and is in asia-south1 (Mumbai)." }] });
     const far = await handleApi(request({ body: JSON.stringify({ name: "connectionTest" }) }), deps({ firestoreRegion: async () => "us-central1" }, su));
     expect((resultOf(far) as { lines: { ok: boolean }[] }).lines[0]!.ok).toBe(false);
+  });
+});
+
+describe("what a save changed (command.ts)", () => {
+  it("API-13 the collections a command changed are listed once each, so the page re-reads only those", () => {
+    const change = (collection: string, id: string) => ({ collection, id, before: null, after: { id } });
+    expect(touchedBy([change("expenses", "e1"), change("rollups", "company_2026-11"), change("expenses", "e2"), change("projects/p1/roster", "w1")] as never)).toEqual(["expenses", "projects/p1/roster", "rollups"]);
+    expect(touchedBy([])).toEqual([]);
   });
 });
 

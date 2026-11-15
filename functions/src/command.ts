@@ -20,7 +20,11 @@ import {
 } from "@ag/core";
 
 export interface CommandRequest { uid: string; name: string; args: unknown; requestId: string }
-export interface CommandOutcome { result: unknown; replayed: boolean }
+/** `touched`: the collections the command changed, so the page re-reads only those ("*" when it cannot tell: a repeated request). */
+export interface CommandOutcome { result: unknown; replayed: boolean; touched: string[] }
+
+/** The collections a set of changes touched, each once. */
+export const touchedBy = (changes: JournalEntry[]): string[] => [...new Set(changes.map((c) => c.collection))].sort();
 
 /** Firestore's transaction allows 500 writes; leave room for the request record and the audit entry. */
 const MAX_WRITES = 480;
@@ -127,7 +131,7 @@ export async function executeCommand(db: Firestore, auth: Auth, req: CommandRequ
     return { replayed: false as const, result: (result ?? null) as unknown, changes };
   });
 
-  if (out.replayed) return { result: out.result, replayed: true };
+  if (out.replayed) return { result: out.result, replayed: true, touched: ["*"] };
 
   // A new person gets their sign-in account, with the same id as their users document.
   if (name === "createUser") {
@@ -147,5 +151,5 @@ export async function executeCommand(db: Firestore, auth: Auth, req: CommandRequ
 
   const uids = usersToResync(out.changes);
   if (uids.length) await syncClaims(db, auth, uids);
-  return { result: out.result, replayed: false };
+  return { result: out.result, replayed: false, touched: touchedBy(out.changes) };
 }

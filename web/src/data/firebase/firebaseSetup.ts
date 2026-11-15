@@ -152,9 +152,13 @@ export class FirebaseSetup implements SetupApi {
 
 /** Sample data in the user's own project (a super user, on purpose only). The server refuses unless the project is empty. */
 export class FirebaseSample implements SampleApi {
-  constructor(private c: Clients) {}
+  constructor(private c: Clients, private changed: () => void = () => {}) {}
   private async act(action: "status" | "load" | "remove"): Promise<SampleStatus> {
-    try { return await call<unknown, SampleStatus>(this.c, "sampleData")({ action }); } catch (e) { throw mapCallError(e); }
+    try {
+      const out = await call<unknown, SampleStatus>(this.c, "sampleData")({ action });
+      if (action !== "status") this.changed();
+      return out;
+    } catch (e) { throw mapCallError(e); }
   }
   status() { return this.act("status"); }
   load() { return this.act("load"); }

@@ -322,6 +322,7 @@ export const en = {
     daysWorked: "Days worked", backToMarking: "Back to marking attendance",
   },
   sync: {
+    saving: "Saving…",
     waiting: "{{n}} waiting to sync", offlineWaiting: "Offline · {{n}} waiting", waitingHere: "{{n}} changes are waiting on this phone.",
     sent: "{{n}} saved changes synced.", discard: "Discard",
   },
