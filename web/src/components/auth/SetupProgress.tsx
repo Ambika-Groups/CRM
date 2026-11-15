@@ -7,8 +7,8 @@ import { resolveConfig } from "@/data/config";
 import { probeProject, type ProbeLine } from "@/lib/projectProbe";
 
 /**
- * "Setting up your project: 3 of 4 steps still to do" (Firebase mode, before the first owner exists). It asks Google's
- * public addresses what is switched on in the user's project, and says in plain words what is missing and which step of
+ * "Setting up your project: 1 of 3 steps still to do" (Firebase mode, before the first owner exists). It asks Google's
+ * public addresses what is switched on in the user's project, and the CRM's own server part whether it is connected, and says in plain words what is missing and which step of
  * GO-LIVE-LOCAL.md fixes it, instead of an error. Shown beside the sign-in, so a half-set-up project is never a dead end.
  */
 export function useProjectProbe() {
@@ -31,8 +31,8 @@ export function SetupProgress({ probe }: { probe: ReturnType<typeof useProjectPr
   const text = (l: ProbeLine): string => {
     const k = `signin.progress.${l.key}`;
     if (l.ok === true) return t(`${k}.ok`, { methods: (l.detail ?? "").split("+").map((m) => t(`signin.progress.method.${m}`)).join(", ") });
-    if (l.ok === false) return t(`${k}.${l.detail === "notStarted" || l.detail === "noMethod" ? l.detail : "missing"}`);
-    return t(`${k}.unknown`);
+    if (l.ok === false) return t(`${k}.${l.detail && ["notStarted", "noMethod", "noKey", "notDeployed"].includes(l.detail) ? l.detail : "missing"}`);
+    return t(`${k}.${l.detail === "local" ? "local" : "unknown"}`);
   };
   return (
     <section className="card auth-progress" aria-labelledby="progress-title" data-setup-progress={missing ? "missing" : "ready"} data-missing={missing}>
@@ -43,7 +43,6 @@ export function SetupProgress({ probe }: { probe: ReturnType<typeof useProjectPr
             <Icon name={l.ok === true ? "check-circle" : l.ok === false ? "alert" : "info"} size={18} /><span>{text(l)}</span>
           </li>
         ))}
-        <li data-progress="server" className="is-unknown"><Icon name="info" size={18} /><span>{t("signin.progress.server")}</span></li>
         <li data-progress="owner" className="is-unknown"><Icon name="info" size={18} /><span>{t("signin.progress.owner")}</span></li>
       </ul>
       <div className="auth-actions">

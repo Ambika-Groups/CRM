@@ -41,6 +41,18 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", "
   ".webmanifest": "application/manifest+json", ".png": "image/png", ".svg": "image/svg+xml", ".txt": "text/plain", ".woff2": "font/woff2" };
 const server = createServer((req, res) => {
   let p = decodeURIComponent(new URL(req.url, "http://x").pathname);
+  // A stand-in for the CRM's server part (netlify/functions/api), answering as the real one does to a call with no sign-in,
+  // so the sign-in screen's "Saving records" line can be checked in each state. The page picks the state with a cookie:
+  // fakeApi=connected or fakeApi=noKey. Without the cookie the address is absent (404), as on a computer with no Netlify.
+  if (p === "/.netlify/functions/api") {
+    const state = /(?:^|;\s*)fakeApi=(\w+)/.exec(req.headers.cookie ?? "")?.[1];
+    if (state === "connected" || state === "noKey") {
+      res.statusCode = state === "connected" ? 401 : 503;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.end(JSON.stringify({ error: state === "connected" ? { code: "unauthenticated", message: "Sign in first." } : { code: "not-connected", message: "The CRM's server part is not connected yet. Nothing was saved." } }));
+      return;
+    }
+  }
   let file = join(root, p);
   if (existsSync(file) && statSync(file).isDirectory()) file = join(file, "index.html");
   if (!existsSync(file)) { file = join(root, "404.html"); res.statusCode = 404; }

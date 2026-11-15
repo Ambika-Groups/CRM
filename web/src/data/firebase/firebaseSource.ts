@@ -14,7 +14,7 @@ import {
   clearIndexedDbPersistence, collection, doc, documentId, getCountFromServer, getDoc, getDocs, getDocsFromCache, limit as fsLimit, orderBy, query as fsQuery,
   serverTimestamp, startAfter, terminate, updateDoc, where as fsWhere, type DocumentData, type QueryConstraint,
 } from "firebase/firestore";
-import { resolveConfig, serverUrl } from "../config";
+import { resolveConfig } from "../config";
 import { isSmallCollection, type AuthApi, type DataSource, type SampleApi, type Session, type SetupApi } from "../types";
 import { call, createClients, docData, isDenied, type Clients } from "./client";
 import { FirebaseAuth } from "./firebaseAuth";
@@ -29,7 +29,7 @@ function commandError(e: unknown): Error {
   const code = err?.code ?? "";
   if (code.endsWith("failed-precondition")) return new CommandError(err.message ?? "This could not be saved.", err.details?.fields ?? {});
   if (code.endsWith("unavailable") || code.endsWith("deadline-exceeded") || !navigator.onLine) return new CommandError("No connection to the server. Nothing was saved. Try again when you are online.");
-  if (code.endsWith("not-found") || code.endsWith("internal")) return new CommandError("Saving this change needs the CRM's server part, which is not connected yet on the free Firebase plan (it moves to Netlify next). Nothing was saved.");
+  if (code.endsWith("not-found")) return new CommandError("Saving needs the CRM's server part, which is not connected yet. The owner connects it once (Setup & integrations shows how). Nothing was saved.");
   if (code.endsWith("unauthenticated")) return new CommandError("You were signed out. Sign in again.");
   if (code.endsWith("permission-denied")) return new CommandError("You can't do this.");
   return new CommandError("Something went wrong on our side. Nothing was saved. Try again.");
@@ -211,8 +211,6 @@ export class FirebaseSource implements DataSource {
 
   async run<N extends CommandName>(name: N, args: CommandArgs<N>, requestId?: string): Promise<CommandResult<N>> {
     if (!this.cached) throw new CommandError("Sign in first.");
-    // The server part (a Netlify Function, D-51) is not connected until NEXT_PUBLIC_API_URL is set: say so plainly, without a network call.
-    if (!serverUrl) throw new CommandError("Saving this change needs the CRM's server part, which is not connected yet on the free Firebase plan (it moves to Netlify next). Nothing was saved.");
     try {
       const out = await call<unknown, { result: unknown }>(this.clients, "command")({ name, args, requestId: cleanRequestId(requestId) });
       this.countCache.clear();

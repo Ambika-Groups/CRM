@@ -2,14 +2,15 @@
   "name": "@ag/functions",
   "version": "0.1.0",
   "private": true,
-  "description": "Ambika Group CRM Cloud Functions (asia-south1): the `command` callable runs the shared core commands inside a Firestore transaction; setupStatus and bootstrapOwner create the first owner. @ag/core is bundled in (build.mjs), so nothing here depends on the workspace at deploy time.",
+  "description": "Ambika Group CRM server part. On the free plan (D-51) it runs as Netlify Functions (netlify/functions re-exports src/netlify.ts): one handler runs the shared core commands inside a Firestore transaction, plus Setup, sample data, the website enquiry link and the nightly clean-up. src/callables.ts is the same work as Cloud Functions, kept for a paid plan.",
   "main": "lib/index.js",
   "engines": {
     "node": "22"
   },
   "scripts": {
     "bundle": "node build.mjs",
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@opentelemetry/api": "1.9.0",
@@ -19,6 +20,7 @@
   "devDependencies": {
     "@types/node": "^22.20.5",
     "esbuild": "0.28.2",
-    "typescript": "5.9"
+    "typescript": "5.9",
+    "vitest": "^4.1.12"
   }
 }

@@ -2,23 +2,22 @@
  * The Firebase web SDK, set up once (M1.6). Firestore keeps an offline copy on this device (all tabs share it), so
  * pages the person has opened still read without a connection. App Check starts first when a reCAPTCHA site key is
  * configured (D-41), so every later call carries its token.
+ *
+ * Saves and Setup go to the CRM's server part: a Netlify Function on this same site (D-51, free plan), called with
+ * `fetch` and the person's sign-in token (`call` below).
  */
-import type { FirebaseWebConfig } from "@ag/core";
+import { readAnswer, ServerError, type FirebaseWebConfig } from "@ag/core";
 import { getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from "firebase/app-check";
+import { getToken as getAppCheckToken, initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from "firebase/app-check";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, initializeFirestore, memoryLocalCache, persistentLocalCache, persistentMultipleTabManager, Timestamp, type Firestore } from "firebase/firestore";
-import { getFunctions, httpsCallable, type Functions } from "firebase/functions";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
-
-/** The region of the callable functions (the database is next to them, asia-south1). */
-export const FUNCTIONS_REGION = "asia-south1";
+import { serverUrl } from "../config";
 
 export interface Clients {
   app: FirebaseApp;
   auth: Auth;
   db: Firestore;
-  functions: Functions;
   storage: FirebaseStorage;
   appCheck: AppCheck | null;
   projectId: string;
@@ -42,7 +41,7 @@ export function createClients(config: Partial<FirebaseWebConfig>, siteKey: strin
     try { db = getFirestore(app); } catch { db = initializeFirestore(app, { localCache: memoryLocalCache() }); }
   }
   return {
-    app, auth: getAuth(app), db, functions: getFunctions(app, FUNCTIONS_REGION), storage: getStorage(app), appCheck,
+    app, auth: getAuth(app), db, storage: getStorage(app), appCheck,
     projectId: config.projectId ?? "",
   };
 }
@@ -59,9 +58,28 @@ export function plain<T = unknown>(v: unknown): T {
 
 export const docData = <T>(id: string, data: unknown): T => ({ ...(plain<Record<string, unknown>>(data ?? {})), id }) as T;
 
+/** How long we wait for the server part: its own limit is 60 seconds. */
+const CALL_TIMEOUT_MS = 65_000;
+
+/** Calls one action of the server part as the signed-in person. */
 export function call<I, O>(c: Clients, name: string): (data: I) => Promise<O> {
-  const fn = httpsCallable<I, O>(c.functions, name);
-  return async (data: I) => (await fn(data)).data;
+  return async (data: I) => {
+    const user = c.auth.currentUser;
+    if (!user) throw new ServerError("unauthenticated", "Sign in first.");
+    let res: Response;
+    try {
+      const headers: Record<string, string> = { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` };
+      if (c.appCheck) {
+        try { headers["X-Firebase-AppCheck"] = (await getAppCheckToken(c.appCheck, false)).token; } catch { /* the server refuses if App Check is enforced */ }
+      }
+      res = await fetch(serverUrl, { method: "POST", headers, body: JSON.stringify({ name, data }), signal: AbortSignal.timeout(CALL_TIMEOUT_MS) });
+    } catch {
+      throw new ServerError("unavailable", "");
+    }
+    let body: unknown = null;
+    try { body = await res.json(); } catch { /* not JSON */ }
+    return readAnswer<O>(res.status, body);
+  };
 }
 
 /** "permission-denied" from Firestore: the person may not read this (rules), as opposed to it not existing. */

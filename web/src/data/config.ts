@@ -27,10 +27,10 @@ export const envRecaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ??
 export { OWNER_EMAIL } from "@ag/core";
 
 /**
- * The address of the CRM's server part (the Netlify Function, D-51), for example "/.netlify/functions/api". Empty until it
- * exists: saves then say plainly that the server part is not connected, and everything that only reads works.
+ * The address of the CRM's server part (D-51): a Netlify Function on this same site. Until its key is set in Netlify it
+ * answers "not connected yet", and the app says so in plain words. NEXT_PUBLIC_API_URL can point somewhere else.
  */
-export const serverUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
+export const serverUrl = process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api";
 
 const DEVICE_CONFIG_KEY = "ag-firebase-config";
 const DEVICE_SITEKEY_KEY = "ag-appcheck-sitekey";

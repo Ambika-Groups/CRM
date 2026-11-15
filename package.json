@@ -2,7 +2,7 @@
   "name": "ambika-crm",
   "private": true,
   "version": "0.1.0",
-  "description": "Ambika Group CRM (spec v1.4). Workspaces: packages/core (domain logic), web (Next.js static export), functions (Cloud Functions).",
+  "description": "Ambika Group CRM (spec v1.4). Workspaces: packages/core (domain logic), web (Next.js static export), functions (the server part, run as Netlify Functions).",
   "workspaces": [
     "packages/core",
     "web",
@@ -10,7 +10,7 @@
     "emulator-tests"
   ],
   "scripts": {
-    "test": "npm run test -w @ag/core",
+    "test": "npm run test -w @ag/core && npm run test -w @ag/functions",
     "typecheck": "npm run typecheck -w @ag/core && npm run typecheck -w web && npm run typecheck -w @ag/functions",
     "build:web": "npm run build -w web",
     "dev": "npm run dev -w web",

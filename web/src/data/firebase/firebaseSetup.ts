@@ -21,7 +21,7 @@ function mapCallError(e: unknown): Error {
   if (err?.details?.reauth) return new ReauthNeeded();
   if (err?.code?.endsWith("failed-precondition")) return new CommandError(err.message ?? "This could not be saved.", err.details?.fields ?? {});
   if (err?.code?.endsWith("unavailable") || err?.code?.endsWith("deadline-exceeded")) return new CommandError("No connection to the server. Check your internet and try again.");
-  if (err?.code?.endsWith("not-found") || err?.code?.endsWith("internal")) return new CommandError("This needs the CRM's server part, which is not connected yet on the free Firebase plan (it moves to Netlify next).");
+  if (err?.code?.endsWith("not-found")) return new CommandError("This needs the CRM's server part, which is not connected yet. The owner connects it once (DEPLOY.md, \"Connect the server part\").");
   if (err?.code?.endsWith("permission-denied") || err?.code?.endsWith("unauthenticated")) return new CommandError("You can't do this. Sign in again as a super user.");
   return new CommandError("Something went wrong on our side. Nothing was saved. Try again.");
 }
@@ -69,7 +69,7 @@ export class FirebaseSetup implements SetupApi {
     return { from: r.from, config: r.config };
   }
 
-  enquiryEndpoint(): string { return `https://asia-south1-${this.c.projectId}.cloudfunctions.net/submitEnquiry`; }
+  enquiryEndpoint(): string { return `${window.location.origin}/.netlify/functions/enquiry`; }
 
   async test(id: IntegrationId, opts?: { key?: string }): Promise<TestOutcome> {
     const d = INTEGRATIONS[id];
@@ -123,7 +123,7 @@ export class FirebaseSetup implements SetupApi {
       }
       case "functions": {
         const r = await call<unknown, { ok: boolean; region: string }>(this.c, "ping")({});
-        return r.ok ? { ok: true, message: `The server functions answered (region ${r.region}).` } : { ok: false, message: "The server functions did not answer correctly." };
+        return r.ok ? { ok: true, message: `The server part answered (${r.region}).` } : { ok: false, message: "The server part did not answer correctly." };
       }
       case "appCheck": {
         if (!this.c.appCheck) return { ok: false, message: "App Check is not switched on in this browser.", hint: "Save the site key here, add NEXT_PUBLIC_RECAPTCHA_SITE_KEY in Netlify (shown below), and reload." };

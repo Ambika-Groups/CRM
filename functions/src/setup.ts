@@ -249,7 +249,8 @@ export interface CheckLine { key: string; ok: boolean; message: string; hint?: s
 
 export interface ServerProbes {
   firestoreRegion: () => Promise<string | null>;
-  bucketLocation: () => Promise<string | null>;
+  /** Absent on the free plan (D-51: no Cloud Storage; photos are kept in the database), so no storage line is reported. */
+  bucketLocation?: () => Promise<string | null>;
   databaseReadable: () => Promise<void>;
 }
 
@@ -268,6 +269,7 @@ export async function serverChecks(p: ServerProbes): Promise<CheckLine[]> {
   } catch {
     lines.push({ key: "database", ok: false, message: "The database did not answer.", hint: "In the Firebase console open Firestore Database and check that the (default) database was created in asia-south1." });
   }
+  if (!p.bucketLocation) return lines;
   try {
     const loc = await p.bucketLocation();
     if (loc === null) lines.push({ key: "storage", ok: false, message: "File storage is not set up.", hint: "In the Firebase console open Storage and press Get started (choose us-central1)." });

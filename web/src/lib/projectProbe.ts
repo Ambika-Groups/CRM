@@ -3,9 +3,10 @@
  * needed). It powers the "steps still missing" panel on the sign-in screen, so a project that is not set up yet shows
  * exactly what is missing instead of an error. Same checks as `npm run golive` (tools/golive.mjs).
  */
-import type { FirebaseWebConfig } from "@ag/core";
+import { serverState, type FirebaseWebConfig } from "@ag/core";
+import { serverUrl } from "@/data/config";
 
-export type ProbeKey = "database" | "signIn";
+export type ProbeKey = "database" | "signIn" | "server";
 /** ok: true (done), false (missing), null (could not tell, for example offline). */
 export interface ProbeLine { key: ProbeKey; ok: boolean | null; detail?: string }
 
@@ -23,9 +24,10 @@ const post = (body: unknown): RequestInit => ({ method: "POST", headers: { "Cont
 
 export async function probeProject(cfg: Partial<FirebaseWebConfig>): Promise<ProbeLine[]> {
   const { projectId = "", apiKey = "" } = cfg;
-  const [db, , pw, g] = await Promise.all([
+  const [db, sv, pw, g] = await Promise.all([
     ask(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/meta/bootstrap?key=${apiKey}`),
-    Promise.resolve(null),
+    // The CRM's server part (D-51), asked without a sign-in: it says whether it is deployed and has its key.
+    ask(serverUrl, post({ name: "ping" })),
     ask(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`, post({ email: "check@example.invalid", password: "x", returnSecureToken: true })),
     ask(`https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${apiKey}`, post({ providerId: "google.com", continueUri: window.location.origin })),
   ]);
@@ -48,6 +50,13 @@ export async function probeProject(cfg: Partial<FirebaseWebConfig>): Promise<Pro
     : googleOn || emailOn ? { key: "signIn", ok: true, detail: `${googleOn ? "google" : ""}${googleOn && emailOn ? "+" : ""}${emailOn ? "email" : ""}` }
     : { key: "signIn", ok: false, detail: "noMethod" };
 
-  // Free plan (D-51): no file storage or server-function step. They are probed only so a later paid plan can show them.
-  return [database, signIn];
+  // Saving goes through the server part. On your own computer there is none (it lives on the Netlify site), which is not a missing step.
+  const state = serverState(sv ? sv.status : null, sv?.json ?? null);
+  const local = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+  const server: ProbeLine = state === "connected" ? { key: "server", ok: true }
+    : state === "unknown" ? { key: "server", ok: null }
+    : local && state === "notDeployed" ? { key: "server", ok: null, detail: "local" }
+    : { key: "server", ok: false, detail: state };
+
+  return [database, signIn, server];
 }
