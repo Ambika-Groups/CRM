@@ -67,3 +67,8 @@ The owner address is written in two places that must match: `ownerEmail()` near 
 Opening **Settings > Setup & integrations** on the demo site and pasting your Firebase settings there stores them in that one browser and switches it to your project (the sign-in page appears). To go back to the demo on that device press **Forget this device's settings** on the sign-in page. Settings that come from Netlify are not affected.
 
 When this works on your computer, put the same site on the internet: see `DEPLOY.md` (the Netlify section).
+
+## Notes on the free plan
+
+- The security rules and the indexes can both be published on the free plan. The indexes file must not contain a "TTL" (auto-delete) setting: Google allows that only on the paid plan, and publishing fails with "billing disabled". The file in this repository has none.
+- Publish with: `npx firebase-tools@15.34.1 deploy --only firestore --project <your project id>` (rules and indexes). Do not deploy functions or storage; they need the paid plan.

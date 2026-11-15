@@ -145,7 +145,7 @@ Allowances were verified on 25 Oct 2026 against the official pages (decisions D-
 |---|---|---|---|---|
 | Firestore writes | 20,000 / day | ~550 / day | 3% | **~1,700 workers marked daily** (~35 sites); writes run at about 11 per worker-day including postings |
 | Firestore reads | 50,000 / day | ~4,000 / day | 8% | **~60 active users** at full-scale habits; reads follow people using screens more than workers. §2's full-scale figure (~1.5 M/month) sits right at the limit |
-| Firestore deletes | 20,000 / day | < 100 / day (TTL clean-up of processed-event markers) | < 1% | not in sight |
+| Firestore deletes | 20,000 / day | < 100 / day (nightly clean-up of processed-event markers (no Firestore TTL on the free plan)) | < 1% | not in sight |
 | Firestore stored | 1 GiB | ~0.15 GiB after year 1 | 15% / year | **~6 years at pilot size**, or within one year at ~8–10 sites (~400 workers). The first limit a growing business will cross |
 | Firestore egress | 10 GiB / month | ~0.2 GiB | 2% | far beyond full scale |
 | Cloud Run (functions) | 2 M requests, 180,000 vCPU-s, 360,000 GiB-s / month | ~25,000 requests, ~10,000 vCPU-s, ~10,000 GiB-s | ~6% (vCPU) | well beyond full scale, **unless a minimum instance is set**: one always-on instance alone uses up the free vCPU time in about 2 days, which is why there are none |

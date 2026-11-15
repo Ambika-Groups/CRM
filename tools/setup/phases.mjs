@@ -1,6 +1,8 @@
 // The phases of `npm run setup`. Each one reads the current state first and does only what is missing (so it can be run
 // again and again), never deletes or overwrites data, and says in plain words what it found and did. Phases return
 // results (see lib.mjs); in a dry run they say what they would do and change nothing.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { accessToken, apiMessage, enableApi, gapi, loadLogin, waitOperation } from "./google.mjs";
 import { consoleUrl, FIREBASE_ENV, parseEnv, poll, result } from "./lib.mjs";
 import { verifyLive } from "./verify-live.mjs";
@@ -284,13 +286,9 @@ export const domains = {
 /** The checks that need no login: a deployed callable answers an anonymous call with a refusal; the rules deny anonymous reads. */
 export async function liveChecks(ctx, { retries = 8 } = {}) {
   const { deps, state } = ctx;
-  const project = state.project, key = state.apiKey, bucket = state.env?.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? "";
-  const json = (b) => ({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
+  const project = state.project, key = state.apiKey;
   const probes = [
-    { id: "fn-ping", title: "Functions answer (ping)", ok: (r) => r.status === 401, run: () => deps.fetch(`https://asia-south1-${project}.cloudfunctions.net/ping`, json({ data: {} })), fix: "Wait a minute and run again; the first deploy can take a while to go live." },
-    { id: "fn-enquiry", title: "Website enquiry address answers", ok: (r) => r.status === 401, run: () => deps.fetch(`https://asia-south1-${project}.cloudfunctions.net/submitEnquiry`, json({ dryRun: true })), fix: "Check that the functions deployed (see the deploy output above)." },
     { id: "rules-db", title: "Database rules deny anonymous reads", ok: (r, t) => r.status === 403 && /insufficient permissions/i.test(t), run: () => deps.fetch(`https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/users/x?key=${key}`), fix: "The Firestore rules did not deploy. Run npm run setup again and read the deploy output." },
-    { id: "rules-storage", title: "Storage rules deny anonymous access", ok: (r) => r.status === 401 || r.status === 403, run: () => deps.fetch(`https://firebasestorage.googleapis.com/v0/b/${bucket}/o?maxResults=1`), fix: "The Storage rules did not deploy, or Storage is not set up." },
   ];
   const out = [];
   for (const pr of probes) {
@@ -302,16 +300,26 @@ export async function liveChecks(ctx, { retries = 8 } = {}) {
   return out;
 }
 
+/** TTL policies are paid-plan only (D-51); a file that asks for one makes the whole indexes deploy fail. Returns the offending collection.field names. */
+export function indexesWithTtl(root) {
+  try {
+    const j = JSON.parse(readFileSync(join(root, "firestore.indexes.json"), "utf8"));
+    return (j.fieldOverrides ?? []).filter((o) => o.ttl).map((o) => `${o.collectionGroup}.${o.fieldPath}`);
+  } catch { return []; }
+}
+
 export const deploy = {
-  id: "deploy", title: "6. Deploy the rules, indexes and server functions",
+  id: "deploy", title: "6. Deploy the rules and indexes",
   async run(ctx) {
     const { deps, state } = ctx;
-    if (ctx.opts.dryRun) return [dry(ctx, "deploy", "Deploy", `run: npx ${FIREBASE_TOOLS} deploy --only firestore,storage,functions --project ${state.project} (OWNER_EMAIL comes from functions/.env), then check each by calling it`)];
-    const args = ["--yes", FIREBASE_TOOLS, "deploy", "--only", "firestore,storage,functions", "--project", state.project, "--non-interactive", "--force"];
+    const ttl = indexesWithTtl(deps.root);
+    if (ttl.length) return [result("indexes-ttl", "Indexes file", "fail", `asks for TTL on ${ttl.join(", ")}`, "The free plan cannot publish a TTL (auto-delete) setting (it fails with 'billing disabled'). Remove the entries with \"ttl\": true from firestore.indexes.json.")];
+    if (ctx.opts.dryRun) return [dry(ctx, "deploy", "Deploy", `run: npx ${FIREBASE_TOOLS} deploy --only firestore --project ${state.project} (rules and indexes only: the free plan has no functions or storage), then check the rules by calling the database`)];
+    const args = ["--yes", FIREBASE_TOOLS, "deploy", "--only", "firestore", "--project", state.project, "--non-interactive", "--force"];
     ctx.log(`   Running: npx ${FIREBASE_TOOLS} deploy ... (this takes a few minutes the first time)`);
     const r = await deps.run("npx", args, { inherit: true, cwd: deps.root });
-    if (r.code !== 0) return [result("deploy", "Deploy", "fail", `the deploy stopped (exit ${r.code})`, "Read the last lines above. Common causes: the pay-as-you-go plan is off, or an API is still switching on (wait a minute and run again).")];
-    return [result("deploy", "Deploy", "done", "rules, indexes and functions sent"), ...(await liveChecks(ctx))];
+    if (r.code !== 0) return [result("deploy", "Deploy", "fail", `the deploy stopped (exit ${r.code})`, "Read the last lines above. Common causes: an index file that asks for TTL (auto-delete), which the free plan refuses with \"billing disabled\", or an API still switching on (wait a minute and run again).")];
+    return [result("deploy", "Deploy", "done", "rules and indexes sent"), ...(await liveChecks(ctx))];
   },
 };
 

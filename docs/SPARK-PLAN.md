@@ -14,7 +14,7 @@ Draft 1, 16 Nov 2026. Proposes **D-51 "Spark-only"**, which overrides D-34 (Blaz
 | Netlify Functions: synchronous **60 s**, scheduled **30 s**, 6 MB payload (4.5 MB binary), 1 GB memory, scheduled functions on **all plans** (run only on the published deploy, UTC cron). Function region cannot be changed on Free (default Ohio). | docs.netlify.com (functions) |
 | Netlify env var value up to 5,000 characters; functions "should fall within AWS's environment limits" (4 KB total, not confirmed on the page). | docs.netlify.com (env vars) |
 
-Not confirmed from a page: the 4 KB total for function variables on Free; custom-claims size (1,000 bytes, from memory); whether Firestore TTL deletes work on Spark; real latency Ohio to Mumbai. Each is marked below.
+Not confirmed from a page: the 4 KB total for function variables on Free; custom-claims size (1,000 bytes, from memory); real latency Ohio to Mumbai. Each is marked below.
 
 ## Recommendation: A, Netlify Functions with the Firebase Admin SDK
 
@@ -57,3 +57,7 @@ Phone-code sign-in; server-built PDFs; point-in-time recovery and managed backup
 ## Code changes and ETA
 
 Netlify adapter and handler routing with token verification (4 h); `FirebaseSource`, auth, setup and sample calls moved from callables to the function, `netlify dev` for local use (3 h); storage adapter with the Firestore implementation, rules, size and quota checks, tests (5 h); scheduled function and backup export skeleton (2 h); rules, `firebase.json`, archive `storage.rules`, drop phone sign-in (1 h); wizard rework for Spark with the service account and Netlify env, `verify:live`, mocked tests (5 h); decisions D-51, data model, traceability, cost estimate, DEPLOY and GO-LIVE (4 h); regression, builds and measurements (3 h). **About 27 working hours, three and a half days.** The email-link and owner-sign-in work already written stays.
+
+## TTL: not available on Spark (confirmed 2026-11-16)
+
+Deploying the index file with a TTL field override failed on the real project with "403 Project ambikagroupscrm has billing disabled". Firestore TTL policies are Blaze-only. So firestore.indexes.json has no TTL override, and old `command_requests` documents (field `expireAt`, 7 days) are removed by the nightly clean-up run by the Netlify scheduled function (and by the catch-up when the owner opens the app). Until that exists they simply stay; they are small and counted in the usage meter.

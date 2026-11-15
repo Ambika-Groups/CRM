@@ -219,10 +219,10 @@ describe("the first owner, created by the rules alone (D-52)", () => {
   const NEW = "uNewOwner";
   const tok = (over: Record<string, unknown> = {}) => ({ email: "Business@AmbikaGroups.Tech", email_verified: true, ...over });
   const ownerDoc = (over: Record<string, unknown> = {}) => ({
-    name: "Business Owner", email: "business@ambikagroups.tech", phone: "", role: "owner", active: true, superUser: true, language: "en", theme: "system", projectIds: [],
+    name: "Business Owner", email: "bussiness@ambikagroups.tech", phone: "", role: "owner", active: true, superUser: true, language: "en", theme: "system", projectIds: [],
     createdAt: serverTimestamp(), updatedAt: serverTimestamp(), createdBy: NEW, updatedBy: NEW, ...over,
   });
-  const marker = (over: Record<string, unknown> = {}) => ({ uid: NEW, email: "business@ambikagroups.tech", at: serverTimestamp(), ...over });
+  const marker = (over: Record<string, unknown> = {}) => ({ uid: NEW, email: "bussiness@ambikagroups.tech", at: serverTimestamp(), ...over });
   const attempt = async (db: ReturnType<typeof asUid>, u: Record<string, unknown>, m: Record<string, unknown>, uid = NEW) => {
     const b = writeBatch(db);
     b.set(doc(db, "users", uid), u);

@@ -927,12 +927,6 @@
   ],
   "fieldOverrides": [
     {
-      "collectionGroup": "command_requests",
-      "fieldPath": "expireAt",
-      "ttl": true,
-      "indexes": []
-    },
-    {
       "collectionGroup": "audit_log",
       "fieldPath": "oldValue",
       "indexes": []
@@ -1026,21 +1020,6 @@
       "collectionGroup": "expenses",
       "fieldPath": "billPaths",
       "indexes": []
-    },
-    {
-      "collectionGroup": "processed_events",
-      "fieldPath": "expireAt",
-      "ttl": true,
-      "indexes": [
-        {
-          "order": "ASCENDING",
-          "queryScope": "COLLECTION"
-        },
-        {
-          "order": "DESCENDING",
-          "queryScope": "COLLECTION"
-        }
-      ]
     }
   ]
 }

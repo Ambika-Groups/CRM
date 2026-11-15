@@ -41,7 +41,7 @@ service cloud.firestore {
     function hasRole(roles) { return signedIn() && role() in roles; }
 
     // ---------- the first owner (D-52) ----------
-    function ownerEmail() { return 'business@ambikagroups.tech'; }
+    function ownerEmail() { return 'bussiness@ambikagroups.tech'; }
     function ownerMarker() { return /databases/$(database)/documents/system/owner; }
     // This person's VERIFIED email is the owner address (case does not matter). A console-added account is unverified until
     // its owner presses the emailed link, which is what stops anyone else registering the address first.

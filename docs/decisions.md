@@ -604,3 +604,7 @@ A scheduled function flags any `billPaths` entry whose file hasn't arrived 48 ho
 **P1-03 `get()` limits on batches.** Repeated `get()`/`exists()` calls on the same document within one request should be de-duplicated. So a one-project "Mark all present" batch should cost four unique lookups (project, roster entry, period lock, settings), plus one roster lookup per worker. Test T-250 confirms how this counts against the 20-lookup batch limit. If it fails, the client writes attendance in chunks, or the bulk action moves to a callable.
 
 **P1-04 Rules expressions to confirm in the emulator.** `fyOf()` uses a conditional expression, integer `%` and `string(int)` inside a function with `let` bindings. All are documented rules features, but this is the first thing the emulator compiles; T-300 to T-305 cover it.
+
+### D-51 addendum: TTL is not available on Spark (2026-11-16)
+
+Confirmed by a failed deploy ("billing disabled" on the TTL field override of `command_requests.expireAt`). The TTL override is removed from firestore.indexes.json. Expired request records are deleted by the nightly clean-up (Netlify scheduled function, with a catch-up when the owner opens the app). Nothing in the app depends on TTL for correctness: a request record only makes a retried command safe, and an old one is harmless.

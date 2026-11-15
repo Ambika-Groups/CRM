@@ -1,9 +1,12 @@
 // The setup wizard against a fake Google and Netlify (no network, no login). IDs W-xxx are cited in docs/prd-traceability.md.
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { main, parseArgs } from "../index.mjs";
 import { LABEL, Report, result, runPhases, scrub } from "../lib.mjs";
 import {
-  authPhase, domains, deploy, ensureDomains, login, netlify, preflight, resources, owner, ALL_PHASES, CONNECT_REPO_STEPS,
+  authPhase, domains, deploy, ensureDomains, indexesWithTtl, login, netlify, preflight, resources, owner, ALL_PHASES, CONNECT_REPO_STEPS,
 } from "../phases.mjs";
 import { API_KEY, PROJECT, SECRET_TOKEN, WEB_ENV, fakeWorld, makeCtx, makeDeps } from "./helpers.mjs";
 
@@ -165,25 +168,36 @@ describe("sign-in (phase 4) and authorized domains (phase 5)", () => {
 describe("deploy (phase 6)", () => {
   const ctxFor = (w, opts = {}) => makeCtx(makeDeps(w), { yes: true, ...opts }, { project: PROJECT, apiKey: API_KEY, env: { NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: `${PROJECT}.firebasestorage.app` } });
 
-  it("W-40 deploys, then proves each part is live by calling it (functions answer, anonymous reads are DENIED)", async () => {
+  it("W-40 deploys rules and indexes only (free plan), then proves the rules are live (anonymous reads are DENIED)", async () => {
     const w = fakeWorld();
     const out = await deploy.run(ctxFor(w));
-    expect(w.runs.some((r) => r.includes("deploy --only firestore,storage,functions --project ambikagroupscrm"))).toBe(true);
-    expect(statuses(out)).toMatchObject({ deploy: "done", "fn-ping": "ok", "fn-enquiry": "ok", "rules-db": "ok", "rules-storage": "ok" });
+    expect(w.runs.some((r) => r.includes("deploy --only firestore --project ambikagroupscrm"))).toBe(true);
+    expect(statuses(out)).toMatchObject({ deploy: "done", "rules-db": "ok" });
+    expect(w.runs.some((r) => /functions|storage/.test(r.split("deploy")[1] ?? ""))).toBe(false);
   });
 
   it("W-41 rules that are not live (an anonymous read succeeds) are a FAIL, not a pass", async () => {
     const out = await deploy.run(ctxFor(fakeWorld({ rulesLive: false })));
     expect(statuses(out)["rules-db"]).toBe("fail");
-    expect(statuses(out)["rules-storage"]).toBe("fail");
   });
 
-  it("W-42 functions that do not answer are a FAIL with a plain fix; a failed deploy stops with the likely causes", async () => {
-    expect(statuses(await deploy.run(ctxFor(fakeWorld({ functionsLive: false }))))["fn-ping"]).toBe("fail");
+  it("W-42 a failed deploy stops with the likely causes", async () => {
     const out = await deploy.run(ctxFor(fakeWorld({ deployExit: 1 })));
     expect(out).toHaveLength(1);
     expect(out[0]).toMatchObject({ status: "fail" });
-    expect(out[0].hint).toMatch(/pay-as-you-go/);
+    expect(out[0].hint).toMatch(/TTL/);
+  });
+
+  it("W-42b an indexes file that asks for TTL is refused before anything is deployed (free plan, D-51), and the repository file has none", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "ag-ttl-"));
+    writeFileSync(join(dir, "firestore.indexes.json"), JSON.stringify({ indexes: [], fieldOverrides: [{ collectionGroup: "command_requests", fieldPath: "expireAt", ttl: true, indexes: [] }] }));
+    expect(indexesWithTtl(dir)).toEqual(["command_requests.expireAt"]);
+    const w = fakeWorld();
+    const ctx = ctxFor(w); ctx.deps.root = dir;
+    const out = await deploy.run(ctx);
+    expect(out[0]).toMatchObject({ id: "indexes-ttl", status: "fail" });
+    expect(w.runs).toEqual([]);
+    expect(indexesWithTtl(join(import.meta.dirname, "..", "..", ".."))).toEqual([]);
   });
 
   it("W-43 a dry run deploys nothing", async () => {

@@ -27,7 +27,7 @@ export const envRecaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ??
  * The first owner's email address (D-52). It is also written in firestore.rules (ownerEmail()); the rules decide, this copy
  * only lets the screen say "this is the owner address" or show a typo hint. Change both together.
  */
-export const OWNER_EMAIL = process.env.NEXT_PUBLIC_OWNER_EMAIL || "business@ambikagroups.tech";
+export const OWNER_EMAIL = process.env.NEXT_PUBLIC_OWNER_EMAIL || "bussiness@ambikagroups.tech";
 
 /**
  * The address of the CRM's server part (the Netlify Function, D-51), for example "/.netlify/functions/api". Empty until it

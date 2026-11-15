@@ -650,7 +650,7 @@ Notes:
 | `integrations/{id}` (id: firebaseConfig, firestore, storage, signIn, functions, appCheck, push, email, websiteLink, maps, whatsapp) | `enabled`, public `values`, `masked` (last four of each secret), `enforce` (App Check), `test` {ok, message, hint, at}, `lastOkAt`, `updatedAt`, `updatedBy` | super user (owner with the `superUser` claim) | server only (the setup callables) |
 | `private_config/{id}` | `secrets` {key: value} (the website key stores only `apiKeyHash`) | **no client** | **no client** (Admin SDK only) |
 | `system_probe/{id}` | one throwaway document per Firestore Test, deleted at once | super user | super user |
-| `command_requests/{requestId}` | `uid`, `name`, `at`, `result`, `expireAt` (TTL 7 days): makes a retried command safe | no client | server only |
+| `command_requests/{requestId}` | `uid`, `name`, `at`, `result`, `expireAt` (plain timestamp, 7 days; no automatic TTL on the free plan, the nightly clean-up deletes expired ones, D-51): makes a retried command safe | no client | server only |
 | `users/{id}` gains `superUser` (owners only) and `claimsAt` (set when claims change; open sessions refresh their token) | | | server only |
 
 Storage: `system_probe/{file}` (the Storage Test, under 1 KB, super user only).
