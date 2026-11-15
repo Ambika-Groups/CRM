@@ -28,7 +28,7 @@ import { createRequire } from "node:module";
 const [, , jobsFile, outDir] = process.argv;
 if (!jobsFile || !outDir) { console.error("Usage: node tools/ui-check.mjs <jobs.json> <outDir>"); process.exit(2); }
 const { jobs } = JSON.parse(readFileSync(jobsFile, "utf8"));
-const root = resolve("web/out");
+const root = resolve(process.env.UI_ROOT ?? "web/out");
 const require = createRequire(import.meta.url);
 const axeSource = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 const CHROME = process.env.CHROME_PATH ?? "C:/Program Files/Google/Chrome/Application/chrome.exe";
@@ -103,9 +103,10 @@ try {
     cdp.on("Network.responseReceived", (e) => {
       if (e.response.status < 400) return;
       if (e.type === "Document" && e.response.url === mainUrl && e.response.status === job.mainStatus) return;
+      if (job.allowFailed?.some((p) => e.response.url.includes(p))) return; // for example Google's own answers when a project is half set up
       failed.push(`${e.response.status} ${e.response.url.replace(`http://127.0.0.1:${PORT}`, "")}`);
     });
-    cdp.on("Network.loadingFailed", (e) => { if (!e.canceled && !/INTERNET_DISCONNECTED/.test(e.errorText)) failed.push(`failed ${(urls.get(e.requestId) ?? "").replace(`http://127.0.0.1:${PORT}`, "")} ${e.errorText}`); });
+    cdp.on("Network.loadingFailed", (e) => { if (!e.canceled && !/INTERNET_DISCONNECTED/.test(e.errorText) && !job.allowFailed?.some((p) => (urls.get(e.requestId) ?? "").includes(p))) failed.push(`failed ${(urls.get(e.requestId) ?? "").replace(`http://127.0.0.1:${PORT}`, "")} ${e.errorText}`); });
     await cdp.send("Network.enable");
     const mobile = job.width < 600;
     await cdp.send("Emulation.setDeviceMetricsOverride", { width: job.width, height: job.height ?? 900, deviceScaleFactor: 1, mobile });
@@ -195,7 +196,7 @@ try {
     }
     await cdp.send("Page.removeScriptToEvaluateOnNewDocument", { identifier });
     const serious = axe.filter((v) => v.impact === "serious" || v.impact === "critical");
-    const pass = layout.overflow === false && serious.length === 0 && readyMs !== null && layout.theme === (job.expectTheme ?? job.theme) && jargon.length === 0 && layout.appShell && failed.length === 0 && expectResult === true && (job.maxReadyMs == null || (readyMs !== null && readyMs <= job.maxReadyMs));
+    const pass = layout.overflow === false && serious.length === 0 && readyMs !== null && layout.theme === (job.expectTheme ?? job.theme) && jargon.length === 0 && (layout.appShell || job.noShell) && failed.length === 0 && expectResult === true && (job.maxReadyMs == null || (readyMs !== null && readyMs <= job.maxReadyMs));
     if (!pass) failures++;
     report.push({ name: job.name, path: job.path, role: job.role ?? "uOwner", lang: job.lang ?? "en", state: job.state ?? null, width: job.width,
       theme: job.theme, pass, readyMs, nav, ...layout, jargon, failedRequests: failed, expect: job.expect ? expectResult : null, axe, file });

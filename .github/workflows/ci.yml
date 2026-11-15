@@ -1,0 +1,54 @@
+# Checks on every push and pull request. No deploys happen here: deploying is done by hand from DEPLOY.md.
+# "check" is fast (types, unit tests, the web build). "emulators" runs the security-rules and Cloud Functions tests
+# on the Firebase emulators; it needs Java, which is why it runs here and not on the owner's computer.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Types (core, web, functions)
+        run: npm run typecheck
+      - name: Unit tests (core)
+        run: npm test
+      - name: Setup wizard tests (mocked)
+        run: npm run test:tools
+      - name: Bundle the functions
+        run: npm run bundle -w @ag/functions
+      - name: Build the web app (demo build)
+        run: npm run build:web
+
+  emulators:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: Security rules and Cloud Functions tests (Firestore and Auth emulators)
+        run: npm run test:emulator

@@ -5,6 +5,11 @@
 // Usage: node tools/jobs/make-m1.3.mjs
 import { writeFileSync } from "node:fs";
 
+// Dates are relative to the day the jobs are generated (the demo seeds around today and locks attendance after 3 days), so the jobs keep working as days go by.
+const istDay = (offset) => new Date(Date.now() + 5.5 * 3600e3 + offset * 86400e3).toISOString().slice(0, 10);
+const YESTERDAY = istDay(-1);
+const LOCKED_DAY = istDay(-5);
+
 const J = [];
 const add = (path, name, width, o = {}) => J.push({ path, name, width, theme: o.theme ?? "light", shot: o.shot ?? true, ...o });
 
@@ -60,7 +65,7 @@ add(ATT, "attendance", 360, { role: "uSupShivNagar", state: "supervisor-hi" });
 add(ATT, "attendance", 390, { role: "uSupShivNagar", theme: "dark", lang: "en", state: "supervisor" });
 add(ATT, "attendance", 768, { role: "uPm", state: "pm" });
 add(ATT, "attendance", 1280);
-add(`${ATT}?site=projShivNagar&date=2026-10-24`, "attendance", 1280, { state: "marked" });
+add(`${ATT}?site=projShivNagar&date=${YESTERDAY}`, "attendance", 1280, { state: "marked" });
 add("/labour/attendance/sheet/?site=projShivNagar&month=2026-10", "sheet", 1280);
 add("/labour/attendance/sheet/?site=projShivNagar&month=2026-10", "sheet", 390, { role: "uSupShivNagar", state: "supervisor" });
 add("/labour/attendance/sheet/?site=projShivNagar&month=2026-10", "sheet", 768, { theme: "dark" });
@@ -93,6 +98,8 @@ add(`${ATT}?site=projShivNagar`, "m13-three-taps", 390, { role: "uSupShivNagar",
   action: act(`await until(()=>document.querySelectorAll('[data-worker]').length>5);${tapCounter}
 const rows=[...document.querySelectorAll('[data-worker]')];
 document.querySelector('[data-all-present]').click();await sleep(150);
+// The seed pre-marks some workers today and Mark all present keeps existing marks: set every other row explicitly, so the sheet starts from a known state.
+for(const r of rows.slice(4)){r.querySelector('[data-set=present]').click();await sleep(30);}
 rows[0].querySelector('[data-set=absent]').click();await sleep(100);
 rows[1].querySelector('[data-set=half_day]').click();await sleep(100);
 rows[2].querySelector('[data-set=overtime]').click();await sleep(150);
@@ -106,19 +113,19 @@ return (max<=3&&t.global<=2&&st(0)==='absent'&&st(1)==='half_day'&&st(2)==='over
 add(`${ATT}?site=projShivNagar`, "m13-attendance-saved", 390, { role: "uSupShivNagar", lang: "en", shot: false, reload: true,
   expect: exp(`await until(()=>document.querySelectorAll('[data-worker]').length>5);await sleep(400);const rows=[...document.querySelectorAll('[data-worker]')];return (rows[0].dataset.status==='absent'&&rows[2].dataset.status==='overtime'&&rows.slice(4).every(r=>r.dataset.status==='present'))||rows.slice(0,6).map(r=>r.dataset.status).join(',');`) });
 // Offline: the save is kept on the phone, the indicator shows it waiting; back online it syncs (§6.3, rule 11).
-add(`${ATT}?site=projShivNagar&date=2026-10-24`, "m13-offline-queued", 390, { role: "uSupShivNagar", lang: "en", offline: "action", viewport: true,
+add(`${ATT}?site=projShivNagar&date=${YESTERDAY}`, "m13-offline-queued", 390, { role: "uSupShivNagar", lang: "en", offline: "action", viewport: true,
   action: act(`await until(()=>document.querySelectorAll('[data-worker]').length>5);const rows=[...document.querySelectorAll('[data-worker]')];rows[5].querySelector('[data-set=absent]').click();await sleep(150);document.querySelector('[data-save]').click();await sleep(800);`),
   expect: exp(`const q=JSON.parse(localStorage.getItem('ag-queue')||'[]');const strip=document.querySelector('[data-offline-strip]');return (q.length===1&&!!strip&&document.querySelector('[data-sync-state]')?.dataset.syncState!=='synced')||JSON.stringify({q:q.length,strip:!!strip});`) });
-add(`${ATT}?site=projShivNagar&date=2026-10-24`, "m13-offline-synced", 1280, { role: "uSupShivNagar", lang: "en", offline: "action-then-online", shot: false,
+add(`${ATT}?site=projShivNagar&date=${YESTERDAY}`, "m13-offline-synced", 1280, { role: "uSupShivNagar", lang: "en", offline: "action-then-online", shot: false,
   action: act(`await until(()=>document.querySelectorAll('[data-worker]').length>5);const rows=[...document.querySelectorAll('[data-worker]')];window.__wid=rows[6].dataset.worker;rows[6].querySelector('[data-set=leave]').click();await sleep(150);document.querySelector('[data-save]').click();await sleep(800);window.__queued=JSON.parse(localStorage.getItem('ag-queue')||'[]').length;`),
   expect: exp(`await until(()=>JSON.parse(localStorage.getItem('ag-queue')||'[]').length===0,5000);await sleep(500);const r=document.querySelector('[data-worker="'+window.__wid+'"]');return (window.__queued>=1&&JSON.parse(localStorage.getItem('ag-queue')||'[]').length===0&&document.querySelector('[data-sync-state]')?.dataset.syncState==='synced'&&r.dataset.status==='leave')||JSON.stringify({q:window.__queued,left:localStorage.getItem('ag-queue'),s:r?.dataset.status});`) });
 // The lock: a supervisor can't change a day older than the window, and is told what to do (D-25).
-add(`${ATT}?site=projShivNagar&date=2026-10-20`, "m13-locked", 390, { role: "uSupShivNagar", lang: "en", viewport: true,
+add(`${ATT}?site=projShivNagar&date=${LOCKED_DAY}`, "m13-locked", 390, { role: "uSupShivNagar", lang: "en", viewport: true,
   expect: exp(`await until(()=>document.querySelectorAll('[data-worker]').length>5);const b=document.querySelector('[data-locked]');return (!!b&&!document.querySelector('[data-unlock]')&&document.querySelector('[data-set=absent]').disabled)||(b?.innerText??'no lock banner');`) });
-add(`${ATT}?site=projShivNagar&date=2026-10-20`, "m13-owner-unlock", 1280, { reload: true, viewport: true,
+add(`${ATT}?site=projShivNagar&date=${LOCKED_DAY}`, "m13-owner-unlock", 1280, { reload: true, viewport: true,
   action: act(`await until(()=>document.querySelector('[data-unlock]'));document.querySelector('[data-unlock]').click();await until(()=>document.querySelector('[role=dialog]'));fill('Reason','Marks entered late');await click('Unlock this day');await sleep(800);`),
   expect: exp(`await until(()=>main().includes('Unlocked by the owner'));return (main().includes('Unlocked by the owner')&&!document.querySelector('[data-locked]'))||main().slice(0,300);`) });
-add(`${ATT}?site=projShivNagar&date=2026-10-20`, "m13-unlocked-sup", 390, { role: "uSupShivNagar", lang: "en", shot: false,
+add(`${ATT}?site=projShivNagar&date=${LOCKED_DAY}`, "m13-unlocked-sup", 390, { role: "uSupShivNagar", lang: "en", shot: false,
   expect: exp(`await until(()=>document.querySelectorAll('[data-worker]').length>5);return (!document.querySelector('[data-locked]')&&!document.querySelector('[data-set=absent]').disabled)||'still locked';`) });
 // Payments: an accountant's bonus above the limit waits; the owner approves it (D13, D-30); both survive a reload.
 add("/labour/payments/new/?worker=w001", "m13-payment-pending", 1280, { role: "uAccountant", reload: true, shot: false,

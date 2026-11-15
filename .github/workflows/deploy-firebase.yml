@@ -1,0 +1,69 @@
+# OPTIONAL: deploys the Firestore security rules and indexes to your Firebase project (Spark plan: no Cloud Functions and no
+# Cloud Storage, decision D-51) whenever the files that define them change on main (or when you press "Run workflow"). It does nothing until you add
+# the two settings below, so the project is safe to push without it. The website itself is deployed by Netlify, not here.
+#
+# One-time setup (5 minutes, DEPLOY.md "Automatic deploys from GitHub"):
+#   1. Google Cloud console > IAM & Admin > Service accounts > Create. Name it "github-deploy".
+#      Roles: Firebase Rules Admin and Cloud Datastore Index Admin (enough to publish rules and indexes).
+#   2. On that account: Keys > Add key > JSON. Open the downloaded file in Notepad and copy ALL of it.
+#   3. GitHub: this repository > Settings > Secrets and variables > Actions:
+#        - New repository SECRET   FIREBASE_SERVICE_ACCOUNT   = the whole JSON text   (never put it anywhere else)
+#        - New repository VARIABLE FIREBASE_PROJECT_ID        = your project id
+#   4. Delete the downloaded JSON file from your computer.
+name: Deploy Firebase
+
+on:
+  push:
+    branches: [main]
+    paths: [firestore.rules, firestore.indexes.json, firebase.json]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-firebase
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+    steps:
+      - name: Is automatic deploy switched on?
+        id: gate
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ] || [ -z "$FIREBASE_PROJECT_ID" ]; then
+            echo "Automatic deploy is not set up (FIREBASE_SERVICE_ACCOUNT, and FIREBASE_PROJECT_ID are needed). Nothing to do."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.go == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.go == 'true'
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        if: steps.gate.outputs.go == 'true'
+        run: npm ci
+      - name: Check before deploying (types and unit tests)
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          npm run typecheck
+          npm test
+      - name: Deploy the Firestore rules and indexes
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          umask 077
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json" \
+            npx --yes firebase-tools@15.34.1 deploy --only firestore --project "$FIREBASE_PROJECT_ID" --non-interactive --force
+      - name: Remove the key file
+        if: always() && steps.gate.outputs.go == 'true'
+        run: rm -f "$RUNNER_TEMP/firebase-sa.json"

@@ -3,6 +3,7 @@ node_modules/
 .next/
 out/
 web/out/
+web/out-firebase/
 web/.next/
 functions/lib/
 *.log
@@ -21,3 +22,4 @@ firestore-debug*.log
 .env
 .env.*
 !.env.example
+setup-report.md
