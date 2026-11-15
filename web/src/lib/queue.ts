@@ -29,11 +29,11 @@ export function enqueue<N extends CommandName>(name: N, args: CommandArgs<N>, la
 }
 
 /** Sends queued writes in order; a refused one stays with its message. Returns how many were sent. */
-export async function flushQueue(run: (name: CommandName, args: never) => Promise<unknown>): Promise<number> {
+export async function flushQueue(run: (name: CommandName, args: never, requestId?: string) => Promise<unknown>): Promise<number> {
   let sent = 0;
   const left: QueuedWrite[] = [];
   for (const q of queuedWrites()) {
-    try { await run(q.name, q.args as never); sent++; } catch (e) { left.push({ ...q, error: e instanceof Error ? e.message : String(e) }); }
+    try { await run(q.name, q.args as never, `${q.id}_${q.at}`); sent++; } catch (e) { left.push({ ...q, error: e instanceof Error ? e.message : String(e) }); }
   }
   save(left);
   return sent;

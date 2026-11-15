@@ -22,7 +22,9 @@ const STAMP_FIELDS = new Set(["updatedAt", "updatedBy", "createdAt", "createdBy"
  */
 export function auditFor(command: string, changes: JournalEntry[], ctx: CommandCtx): Doc | null {
   if (!changes.length || changes.some((c) => c.collection === "audit_log")) return null;
-  const main = changes.find((c) => !DERIVED_COLLECTIONS.has(c.collection.split("/")[0]!) && !DERIVED_COLLECTIONS.has(c.collection)) ?? changes[0]!;
+  // The main record is the first top-level one that isn't a derived total, so a project's detail records never hide the project.
+  const notDerived = changes.filter((c) => !DERIVED_COLLECTIONS.has(c.collection.split("/")[0]!));
+  const main = notDerived.find((c) => !c.collection.includes("/")) ?? notDerived[0] ?? changes[0]!;
   const action = main.before === null ? "create" : main.after === null ? "delete" : "update";
   const keys = new Set([...Object.keys(main.before ?? {}), ...Object.keys(main.after ?? {})]);
   const fields = action === "update"

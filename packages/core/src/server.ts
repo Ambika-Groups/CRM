@@ -100,12 +100,14 @@ export async function runWithLoads<N extends CommandName>(loader: Loader, name: 
 
 // ---------- Sign-in claims (D-05): the role and assigned projects the security rules check ----------
 
-export interface Claims { role: Role; projects: string[] }
+export interface Claims { role: Role; projects: string[]; superUser?: boolean }
 
 /** Claims for a user document, or null when the user may not sign in (inactive or missing). */
-export function claimsFor(user: Pick<User, "role" | "active" | "projectIds"> | null): Claims | null {
+export function claimsFor(user: Pick<User, "role" | "active" | "projectIds" | "superUser"> | null): Claims | null {
   if (!user || !user.active) return null;
-  return { role: user.role, projects: [...(user.projectIds ?? [])].sort() };
+  const claims: Claims = { role: user.role, projects: [...(user.projectIds ?? [])].sort() };
+  if (user.role === "owner" && user.superUser === true) claims.superUser = true; // D-48
+  return claims;
 }
 
 /** The user IDs whose claims a set of changes may have altered: users edited, or project assignments changed. */
@@ -114,7 +116,7 @@ export function usersToResync(changes: JournalEntry[]): string[] {
   for (const c of changes) {
     if (c.collection === "users") {
       const b = c.before as Partial<User> | null, a = c.after as Partial<User> | null;
-      if (b?.role !== a?.role || b?.active !== a?.active || JSON.stringify([...(b?.projectIds ?? [])].sort()) !== JSON.stringify([...(a?.projectIds ?? [])].sort())) out.add(c.id);
+      if (b?.role !== a?.role || b?.active !== a?.active || (b?.superUser === true) !== (a?.superUser === true) || JSON.stringify([...(b?.projectIds ?? [])].sort()) !== JSON.stringify([...(a?.projectIds ?? [])].sort())) out.add(c.id);
     }
     if (c.collection === "projects") {
       const b = new Set((getPath(c.before, "assignedUsers") as string[] | undefined) ?? []);
@@ -136,7 +138,7 @@ export function usersToResync(changes: JournalEntry[]): string[] {
 export function firstOwnerDocs(owner: { uid: string; name: string; email: string }, nowIso: string): { collection: string; doc: Doc }[] {
   const stamp = { createdAt: nowIso, createdBy: owner.uid, updatedAt: nowIso, updatedBy: owner.uid };
   const out: { collection: string; doc: Doc }[] = [
-    { collection: "users", doc: { id: owner.uid, name: owner.name || owner.email, email: owner.email, phone: "", role: "owner", active: true, language: "en", theme: "system", projectIds: [], ...stamp } },
+    { collection: "users", doc: { id: owner.uid, name: owner.name || owner.email, email: owner.email, phone: "", role: "owner", superUser: true, active: true, language: "en", theme: "system", projectIds: [], ...stamp } },
     { collection: "settings", doc: {
       id: "company", legalName: "Ambika Group [legal name to be confirmed]", tradeName: "Ambika Group", address: "", stateCode: "09",
       gstin: "", pan: "", phone: "", email: owner.email, brandColor: "#F12136", gstScheme: "regular", logoPath: null, signaturePath: null, stampPath: null, ...stamp,
@@ -151,4 +153,36 @@ export function firstOwnerDocs(owner: { uid: string; name: string; email: string
   ];
   for (const cat of seedCategories()) out.push({ collection: "expense_categories", doc: { ...(cat as unknown as Doc), ...stamp } });
   return out;
+}
+
+// ---------- Who may become the first owner (callables.ts) ----------
+
+/** What the sign-in token says about a person (only what the first-owner check needs). */
+export interface TokenFacts { email?: unknown; email_verified?: unknown }
+
+/**
+ * May this signed-in person be set up as the first owner? Their email must be verified (Google and email-link sign-in always
+ * are), and equal to OWNER_EMAIL ignoring capital letters and stray spaces. A person who signed up with a password has an
+ * unverified email until they press the link we send them.
+ */
+export function canBecomeFirstOwner(ownerEmail: string | undefined, token: TokenFacts): { ok: boolean; email: string; why?: "noOwnerConfigured" | "unverified" | "different" } {
+  const want = (ownerEmail ?? "").trim().toLowerCase();
+  const email = String(token.email ?? "").trim().toLowerCase();
+  if (!want) return { ok: false, email, why: "noOwnerConfigured" };
+  if (email !== want) return { ok: false, email, why: "different" };
+  if (token.email_verified !== true) return { ok: false, email, why: "unverified" };
+  return { ok: true, email };
+}
+
+/**
+ * A partial view of the owner address to help the person spot a typo, shown only to someone signed in with an address on the
+ * same domain: "b••••••s@ambikagroups.tech" (first and last letter of the part before the @, the rest as dots, and the domain).
+ */
+export function ownerHint(ownerEmail: string | undefined, signedInEmail: string): string | null {
+  const want = (ownerEmail ?? "").trim().toLowerCase();
+  const at = want.lastIndexOf("@");
+  const mine = signedInEmail.trim().toLowerCase();
+  if (at < 2 || mine.slice(mine.lastIndexOf("@")) !== want.slice(at)) return null;
+  const local = want.slice(0, at);
+  return `${local[0]}${"•".repeat(Math.max(0, local.length - 2))}${local[local.length - 1]}${want.slice(at)}`;
 }

@@ -1,5 +1,13 @@
 rules_version = '2';
 
+// DRAFT 6 (D-52, Spark): roles are read from the person's own users/{uid} document (role, active, superUser, projectIds),
+// not from custom sign-in claims, so no server is needed to set them. Cost: one extra document read per request (the
+// users document), counted once however many rules refer to it. The first owner is created by these rules (see
+// isFirstOwnerCreate): a person whose VERIFIED email equals ownerEmail() writes users/{uid} (role owner, superUser) and
+// system/owner together in one batch, and only while system/owner does not exist.
+//
+// *** To use a different first-owner address, change ownerEmail() below and publish the rules again. ***
+
 // Ambika Group CRM: Firestore Security Rules. DRAFT 4 (M1.3: D-45 money on workers is finance-only; owner unlock;
 // contract measurements, unlocks, check-ins). DRAFT 3 (M1.2: role scope D-42 viewer and D-43 CA; worker rates in
 // workers/{id}/private/pay; a PM reads only workers on their sites). Not yet emulator-tested (CI, M1.6).
@@ -23,10 +31,33 @@ service cloud.firestore {
 
     // ---------- identity and roles ----------
 
-    function signedIn() { return request.auth != null && request.auth.token.role is string; }
     function uid() { return request.auth.uid; }
-    function role() { return request.auth.token.role; }
+    function usersDoc() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    // The caller's own users document: the one place their role lives (D-52). Read once per request.
+    function me() { return get(usersDoc()).data; }
+    // Signed in AND known to the CRM AND switched on. Someone who has only an account (no users document) is not signed in here.
+    function signedIn() { return request.auth != null && exists(usersDoc()) && me().get('active', false) == true && me().role is string; }
+    function role() { return me().role; }
     function hasRole(roles) { return signedIn() && role() in roles; }
+
+    // ---------- the first owner (D-52) ----------
+    function ownerEmail() { return 'business@ambikagroups.tech'; }
+    function ownerMarker() { return /databases/$(database)/documents/system/owner; }
+    // This person's VERIFIED email is the owner address (case does not matter). A console-added account is unverified until
+    // its owner presses the emailed link, which is what stops anyone else registering the address first.
+    function isOwnerAddress() {
+      return request.auth != null && request.auth.token.email_verified == true && request.auth.token.email.lower() == ownerEmail();
+    }
+    // True only in the batch that creates system/owner for this person, while no owner exists yet.
+    function inFirstOwnerBatch() {
+      return isOwnerAddress() && !exists(ownerMarker()) && existsAfter(ownerMarker()) && getAfter(ownerMarker()).data.uid == request.auth.uid;
+    }
+    function isFirstOwnerCreate(userId) {
+      return userId == request.auth.uid && inFirstOwnerBatch()
+        && request.resource.data.keys().hasOnly(['name', 'email', 'phone', 'role', 'active', 'superUser', 'language', 'theme', 'projectIds', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy'])
+        && request.resource.data.role == 'owner' && request.resource.data.superUser == true && request.resource.data.active == true
+        && request.resource.data.email.lower() == ownerEmail() && request.resource.data.projectIds == [];
+    }
 
     function isOwner() { return hasRole(['owner']); }
     // Write access to finance data.
@@ -58,7 +89,7 @@ service cloud.firestore {
       return isFinance() || (isSiteRole() && assigned(pid));
     }
     // D-21 fallback, adopted for workers: the 'projects' claim lists the user's assigned project IDs.
-    function claimProjects() { return request.auth.token.get('projects', []); }
+    function claimProjects() { return me().get('projectIds', []); }
     function siteRoleOn(pid) { return isSiteRole() && assigned(pid); }
     function pmOn(pid) { return isPm() && assigned(pid); }
     function onRoster(pid, workerId) {
@@ -154,12 +185,21 @@ service cloud.firestore {
     // ================= identity, settings, system =================
 
     match /users/{userId} {
-      allow read: if signedIn() && (userId == uid() || isFinance());
-      // Profile is created and role-managed by callables. Users may change their own preferences.
+      // Anyone signed in may read THEIR OWN document (even a switched-off person, so the app can say so); finance reads all.
+      allow read: if (request.auth != null && userId == request.auth.uid) || (signedIn() && isFinance());
+      // The first owner creates their own document, once, in the batch that also creates system/owner (D-52).
+      allow create: if isFirstOwnerCreate(userId);
+      // Users may change their own preferences.
       allow update: if signedIn() && userId == uid()
         && onlyChanges(['language', 'theme', 'updatedAt', 'updatedBy']) && stampedUpdate()
         && data().theme in ['light', 'dark', 'system'] && data().language in ['en', 'hi'];
-      allow create, delete: if false;
+      // An owner manages OTHER people's documents (role, on/off, projects, contact). Only a super user changes superUser;
+      // nobody changes their own role, status or projects (so the owner cannot lock themselves out).
+      allow update: if isOwner() && userId != uid() && stampedUpdate()
+        && onlyChanges(['name', 'phone', 'email', 'role', 'active', 'projectIds', 'language', 'theme', 'superUser', 'updatedAt', 'updatedBy'])
+        && data().role in ['owner', 'accountant', 'pm', 'supervisor', 'viewer', 'ca']
+        && (untouched(['superUser']) || isSuperUser());
+      allow delete: if false;
 
       match /devices/{deviceId} {
         allow read, write: if signedIn() && userId == uid();
@@ -178,6 +218,30 @@ service cloud.firestore {
         || (isFinance() && docId in ['bank', 'templates']);
       allow delete: if false;
     }
+
+    // The one-time first-owner marker (D-52). Readable by any signed-in account (the app asks "is there an owner yet?").
+    // Created only by the owner-address person in the same batch as their users document; never changed or removed.
+    match /system/{docId} {
+      allow read: if request.auth != null;
+      allow create: if docId == 'owner' && isOwnerAddress() && !exists(ownerMarker())
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'at'])
+        && request.resource.data.uid == request.auth.uid && request.resource.data.email.lower() == ownerEmail()
+        && existsAfter(usersDoc()) && getAfter(usersDoc()).data.role == 'owner';
+      allow update, delete: if false;
+    }
+
+    // ---------- Setup & integrations (D-48, D-49, M1.6) ----------
+    // A super user is an owner whose users document says superUser (D-48, D-52).
+    function isSuperUser() { return isOwner() && me().get('superUser', false) == true; }
+
+    // Status, masked tails, public values and the last Test result. Written only by the setup callables.
+    match /integrations/{id} { allow read: if isSuperUser(); allow write: if false; }
+    // Secret values (email key, website key hash, ...). No client, ever; only the Admin SDK in the callables.
+    match /private_config/{id} { allow read, write: if false; }
+    // The Firestore Test writes, reads and deletes one probe document here.
+    match /system_probe/{id} { allow read, write: if isSuperUser(); }
+    // Request ids that make a retried command safe (server-only, expire after 7 days).
+    match /command_requests/{id} { allow read, write: if false; }
 
     // Server-only collections (D-08, D-09, D-12, D-31).
     match /counters/{id} { allow read, write: if false; }

@@ -3,7 +3,8 @@ import { BOTTOM_NAV, navFor, type NavKey } from "@ag/core";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { useData, useOnline, useSession } from "@/data/DataProvider";
+import { AuthScreen } from "@/components/auth/AuthScreen";
+import { useAuthState, useData, useOnline, useSession } from "@/data/DataProvider";
 import { DemoBanner } from "./DemoBanner";
 import { Icon } from "./Icon";
 import { LangToggle } from "./LangToggle";
@@ -47,6 +48,7 @@ export function AppShell({ nav, title, crumbs, children, actionBar }: Props) {
   const { t, i18n } = useTranslation();
   const { source, status, error } = useData();
   const session = useSession();
+  const authState = useAuthState();
   const online = useOnline();
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, toggleCollapsed] = useCollapsed();
@@ -78,13 +80,16 @@ export function AppShell({ nav, title, crumbs, children, actionBar }: Props) {
     );
   }
 
+  // Firebase mode: nobody sees the app until a person with a role is signed in.
+  if (authState && authState.kind !== "ready") return <AuthScreen state={authState} />;
+
   const items = session ? navFor(session.role) : [];
   const visibleBottom = BOTTOM_NAV.filter((b) => b.key === "more" || items.some((i) => i.href === b.href || (b.key === "attendance" && i.key === "labour")));
 
   return (
     <>
       <a className="sr-only" href="#main">{t("app.skip")}</a>
-      {source.mode === "demo" && <DemoBanner />}
+      {status === "ready" && source.mode === "demo" && <DemoBanner />}
       <div className={collapsed ? "app nav-collapsed" : "app"}>
         <nav className="sidenav" aria-label={t("nav.main")}>
           <div className="brand-mark"><span className="ag">AG</span><span className="name">{t("app.name")}</span></div>

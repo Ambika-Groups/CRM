@@ -12,6 +12,8 @@ export interface CommandCtx {
   role: Role;
   projectIds: string[];
   nowIso: string;
+  /** D-48: the caller is an owner with superUser=true (set by the runner from the users document). */
+  superUser?: boolean;
 }
 
 /** A refusal or validation failure the UI shows as-is. `fields` maps a field name to its message. */

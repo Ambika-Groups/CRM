@@ -1,5 +1,6 @@
 "use client";
 import { DEFAULT_FORMATS, formatDocNumber, fyOf, ROLE_LABELS, ROLES, todayIST, type DocType, type Role, type User } from "@ag/core";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NoAccess } from "@/components/ModulePage";
@@ -8,8 +9,7 @@ import { Icon } from "@/components/shell/Icon";
 import { Button } from "@/components/ui/button";
 import { Skeleton, StatusBadge, useToast, MiniWrap } from "@/components/ui/feedback";
 import { CheckField, ErrorSummary, fromPaise, MoneyField, SelectField, TextArea, TextField, toInt, toPaise, useForm } from "@/components/ui/form";
-import { dataMode } from "@/data/config";
-import { useRun, useSession, useSmall } from "@/data/DataProvider";
+import { useData, useRun, useSession, useSmall } from "@/data/DataProvider";
 import { phone } from "@/lib/fmt";
 import { setParam, useParam } from "@/lib/params";
 
@@ -36,6 +36,12 @@ export function SettingsPage() {
   return (
     <AppShell nav="settings" title={title} crumbs={[{ label: title }]}>
       <div className="page-head"><div className="heading"><h1>{title}</h1></div></div>
+      {session?.superUser && (
+        <section className="card setup-link" data-setup-link>
+          <div><h2 className="card-title">{t("setup.menu")}</h2><p className="muted">{t("setup.menuHint")}</p></div>
+          <Link className="btn btn-secondary" href="/settings/setup/">{t("setup.title")}</Link>
+        </section>
+      )}
       <nav className="tabs" aria-label={title}>
         {TABS.map((x) => (
           <a key={x} href={`?tab=${x}`} aria-current={tab === x ? "page" : undefined} onClick={(e) => { e.preventDefault(); setTab(x); setParam("tab", x); }}>{t(`settings.${x}`)}</a>
@@ -91,6 +97,7 @@ function UsersTab({ canWrite }: { canWrite: boolean }) {
   const session = useSession();
   const run = useRun();
   const toast = useToast();
+  const { source } = useData();
   const users = useSmall<User>("users");
   const f = useForm({ name: "", contact: "", role: "supervisor" });
   const roleOptions = ROLES.map((r) => ({ value: r, label: ROLE_LABELS[r][lang] }));
@@ -101,11 +108,11 @@ function UsersTab({ canWrite }: { canWrite: boolean }) {
     <>
       <section className="card">
         <h2 className="card-title">{t("settings.users")}</h2>
-        <p className="hint"><Icon name="info" size={16} /><span>{dataMode === "demo" ? t("settings.demoSwitch") : t("settings.ownerOnly")}</span></p>
+        <p className="hint"><Icon name="info" size={16} /><span>{source.mode === "demo" ? t("settings.demoSwitch") : t("settings.ownerOnly")}</span></p>
         {!users ? <Skeleton lines={4} /> : (
           <MiniWrap label={t("settings.users")}><table className="mini-table">
             <caption className="sr-only">{t("settings.users")}</caption>
-            <thead><tr><th>{t("settings.userName")}</th><th>{t("settings.userContact")}</th><th>{t("settings.userRole")}</th><th>{t("settings.activeUser")}</th></tr></thead>
+            <thead><tr><th>{t("settings.userName")}</th><th>{t("settings.userContact")}</th><th>{t("settings.userRole")}</th><th>{t("settings.activeUser")}</th><th>{t("settings.superUser")}</th></tr></thead>
             <tbody>
               {[...users].sort((a, b) => a.name.localeCompare(b.name)).map((u) => (
                 <tr key={u.id}>
@@ -121,6 +128,10 @@ function UsersTab({ canWrite }: { canWrite: boolean }) {
                     <label className="toggle-row"><input type="checkbox" checked={u.active} aria-label={`${t("settings.activeUser")}: ${u.name}`}
                       onChange={(e) => void act(() => run("setUserActive", { userId: u.id, active: e.target.checked }), t("settings.saved"))} /></label>
                   ) : <StatusBadge kind={u.active ? "active" : "inactive"} />}</td>
+                <td>{u.role !== "owner" ? "—" : session?.superUser ? (
+                    <label className="toggle-row"><input type="checkbox" checked={u.superUser === true} aria-label={`${t("settings.superUser")}: ${u.name}`} data-super-user={u.id}
+                      onChange={(e) => void act(() => run("setSuperUser", { userId: u.id, superUser: e.target.checked }), t("settings.saved"))} /></label>
+                  ) : (u.superUser ? t("settings.yes") : t("settings.no"))}</td>
                 </tr>
               ))}
             </tbody>

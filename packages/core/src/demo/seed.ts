@@ -96,7 +96,7 @@ export async function seedDemo(anchor: string): Promise<{ store: MemoryStore; su
 
   // ---------- users (one per role, two supervisors) ----------
   const users: User[] = [
-    { id: DEMO_IDS.owner, name: "Anil Mishra", email: "owner@demo.ambika", role: "owner", active: true, language: "en", theme: "system", projectIds: [] },
+    { id: DEMO_IDS.owner, name: "Anil Mishra", email: "owner@demo.ambika", role: "owner", superUser: true, active: true, language: "en", theme: "system", projectIds: [] },
     { id: DEMO_IDS.accountant, name: "Priya Srivastava", email: "accounts@demo.ambika", role: "accountant", active: true, language: "en", theme: "system", projectIds: [] },
     { id: DEMO_IDS.pm, name: "Vikas Tiwari", email: "vikas@demo.ambika", role: "pm", active: true, language: "en", theme: "system", projectIds: [DEMO_IDS.projGov, DEMO_IDS.projHouse] },
     { id: DEMO_IDS.sup1, name: "Ramesh Yadav", phone: "+919839000001", role: "supervisor", active: true, language: "hi", theme: "system", projectIds: [DEMO_IDS.projGov] },

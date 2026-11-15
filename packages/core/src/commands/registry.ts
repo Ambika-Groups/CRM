@@ -6,7 +6,7 @@ import { approveExpense, rejectExpense } from "../actions";
 import type { MemoryStore } from "../store";
 import { createClient, updateClient } from "./clients";
 import type { CommandCtx } from "./common";
-import { createUser, requestRateChange, saveKyc, saveWorker, setAssignment, setRoster, setUserActive, setUserRole, updateSettings } from "./people";
+import { createUser, requestRateChange, saveKyc, saveWorker, setAssignment, setRoster, setSuperUser, setUserActive, setUserRole, updateSettings } from "./people";
 import {
   addContractMeasurement, approveWorkerPayments, createWorkerPayment, markAttendanceDay, payPayout, rejectWorkerPayment, saveProjectTerms, saveThekedarContract, unlockAttendanceDay,
 } from "./labour";
@@ -31,6 +31,7 @@ export const COMMANDS = {
   createUser: (s, a: Parameters<typeof createUser>[1], c) => createUser(s, a, c),
   setUserRole: (s, a: { userId: string; role: Parameters<typeof setUserRole>[2] }, c) => setUserRole(s, a.userId, a.role, c),
   setUserActive: (s, a: { userId: string; active: boolean }, c) => setUserActive(s, a.userId, a.active, c),
+  setSuperUser: (s, a: { userId: string; superUser: boolean }, c) => setSuperUser(s, a.userId, a.superUser, c),
   setAssignment: (s, a: { projectId: string; userId: string; assigned: boolean }, c) => setAssignment(s, a.projectId, a.userId, a.assigned, c),
   updateSettings: (s, a: { docId: string; patch: Record<string, unknown> }, c) => updateSettings(s, a.docId, a.patch, c),
   approveExpense: (s, a: { id: string }, c) => approveExpense(s, a.id, { uid: c.uid, nowIso: c.nowIso }),

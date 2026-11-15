@@ -8,7 +8,7 @@ import { copyFile, readdir, stat } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const OUT = fileURLToPath(new URL("../out/", import.meta.url));
+const OUT = fileURLToPath(new URL(`../${process.env.AG_OUT_DIR || "out"}/`, import.meta.url));
 
 async function walk(dir) {
   const files = [];

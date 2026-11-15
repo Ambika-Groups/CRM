@@ -8,6 +8,7 @@ import {
   canRead, CommandError, MemoryStore, runCommand, runCount, runQuery, seedDemo, SMALL_COLLECTIONS, todayIST,
   type CommandArgs, type CommandName, type CommandResult, type Doc, type Page, type QuerySpec, type User, type Where, Persister } from "@ag/core";
 import { openDB, type IDBPDatabase } from "idb";
+import { DemoSetup } from "./demoSetup";
 import { isSmallCollection, type DataSource, type Session } from "../types";
 
 const DB_NAME = "ag-crm-demo";
@@ -15,7 +16,7 @@ const STORE = "snapshot";
 const KEY = "v1";
 const SESSION_KEY = "ag-demo-uid";
 /** Bump when the seed changes shape, so browsers reseed. */
-export const DEMO_SEED_VERSION = 6;
+export const DEMO_SEED_VERSION = 7;
 
 /** Map a collection path to the key the role matrix uses. */
 function matrixKey(collection: string, id: string): string {
@@ -33,6 +34,7 @@ function withProject(collection: string, doc: Doc): Doc {
 
 export class DemoSource implements DataSource {
   readonly mode = "demo" as const;
+  readonly setup = new DemoSetup();
   private store = new MemoryStore();
   private db: IDBPDatabase | null = null;
   private listeners = new Set<() => void>();
@@ -76,7 +78,7 @@ export class DemoSource implements DataSource {
   session(): Session | null {
     const u = this.uid ? this.store.get<User>("users", this.uid) : null;
     if (!u) return null;
-    return { uid: u.id, name: u.name, role: u.role, projectIds: u.projectIds ?? [], language: u.language, theme: u.theme };
+    return { uid: u.id, name: u.name, role: u.role, projectIds: u.projectIds ?? [], language: u.language, theme: u.theme, superUser: u.role === "owner" && u.superUser === true };
   }
 
   subscribe(fn: () => void): () => void {

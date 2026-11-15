@@ -6,14 +6,23 @@
   "workspaces": [
     "packages/core",
     "web",
-    "functions"
+    "functions",
+    "emulator-tests"
   ],
   "scripts": {
     "test": "npm run test -w @ag/core",
-    "typecheck": "npm run typecheck -w @ag/core && npm run typecheck -w web",
+    "typecheck": "npm run typecheck -w @ag/core && npm run typecheck -w web && npm run typecheck -w @ag/functions",
     "build:web": "npm run build -w web",
     "dev": "npm run dev -w web",
-    "ui:check": "node tools/ui-check.mjs"
+    "ui:check": "node tools/ui-check.mjs",
+    "test:emulator": "npx firebase-tools@15.34.1 emulators:exec --only firestore,auth --project demo-ambika \"npm run test -w @ag/emulator-tests\"",
+    "golive": "node tools/golive.mjs",
+    "build:demo": "node web/scripts/build-variant.mjs demo",
+    "build:firebase": "node web/scripts/build-variant.mjs firebase",
+    "dev:live": "npm run dev:live -w web",
+    "setup": "node tools/setup/index.mjs",
+    "verify:live": "node tools/setup/verify-live.mjs",
+    "test:tools": "vitest run --root tools/setup"
   },
   "engines": {
     "node": ">=20"

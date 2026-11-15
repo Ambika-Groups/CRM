@@ -5,7 +5,8 @@
   "description": "Ambika Group CRM web app: Next.js static export (PWA) for Netlify. Demo mode without Firebase config; Firebase mode with it.",
   "scripts": {
     "dev": "next dev --port 4320",
-    "build": "next build && node scripts/flatten-segment-prefetch.mjs && node scripts/postbuild.mjs",
+    "dev:live": "next dev --port 3100",
+    "build": "node scripts/require-firebase.mjs && next build && node scripts/flatten-segment-prefetch.mjs && node scripts/postbuild.mjs",
     "typecheck": "tsc --noEmit -p ."
   },
   "devDependencies": {
@@ -24,6 +25,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "echarts": "6.0.0",
+    "firebase": "13.1.0",
     "i18next": "^26.5.10",
     "idb": "^8.0.4",
     "lucide-react": "^1.61.0",

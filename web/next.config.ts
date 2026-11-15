@@ -8,6 +8,8 @@ const config: NextConfig = {
   transpilePackages: ["@ag/core"],
   reactStrictMode: true,
   poweredByHeader: false,
+  // Set only by `npm run build:firebase`, to build beside the demo (web/out) instead of over it.
+  ...(process.env.AG_OUT_DIR ? { distDir: process.env.AG_OUT_DIR } : {}),
 };
 
 export default config;

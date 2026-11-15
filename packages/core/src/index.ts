@@ -25,3 +25,4 @@ export * from "./persist";
 export * from "./dashboard";
 export * from "./runner";
 export * from "./server";
+export * from "./integrations";

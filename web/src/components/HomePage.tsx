@@ -2,7 +2,9 @@
 import type { Attendance, Expense } from "@ag/core";
 import { useTranslation } from "react-i18next";
 import { Dashboard } from "@/components/dashboard/Dashboard";
-import { useData, useSession } from "@/data/DataProvider";
+import Link from "next/link";
+import { useData, useRead, useSession } from "@/data/DataProvider";
+import { Icon } from "./shell/Icon";
 import type { DemoSource } from "@/data/demo/demoSource";
 import { AppShell } from "./shell/AppShell";
 
@@ -15,8 +17,28 @@ export function HomePage() {
   const { source } = useData();
   const session = useSession();
   const demo = source.mode === "demo" ? (source as DemoSource) : null;
+  const finance = session?.role === "owner" || session?.role === "accountant";
+  // A real, empty project: say so, and say what to do first. Sample data is for a super user to load on purpose.
+  const counts = useRead(`home-empty:${session?.uid}`, async (s) => (finance ? { projects: await s.count("projects"), clients: await s.count("clients"), workers: await s.count("workers") } : null));
+  const empty = !!counts && counts.projects + counts.clients + counts.workers === 0;
+  const sample = useRead(`home-sample:${session?.uid}`, async (s) => (s.sample && session?.superUser ? s.sample.status().catch(() => null) : null));
   return (
     <AppShell nav="home" title={t("nav.home")} crumbs={[{ label: t("nav.home") }]}>
+      {empty && !demo && (
+        <section className="card empty-welcome" data-empty-welcome aria-labelledby="ew-title">
+          <h2 id="ew-title" className="card-title">{t("home.welcomeTitle")}</h2>
+          <p>{t("home.welcomeBody")}</p>
+          <ol className="empty-steps">
+            <li><Link href="/clients/edit/">{t("home.stepClient")}</Link></li>
+            <li><Link href="/projects/new/">{t("home.stepProject")}</Link></li>
+            <li><Link href="/labour/workers/edit/">{t("home.stepWorker")}</Link></li>
+          </ol>
+          {session?.superUser && <p className="small muted">{t("home.sampleHint")} <Link href="/settings/setup/#sample-data" data-sample-link>{t("home.sampleLink")}</Link></p>}
+        </section>
+      )}
+      {sample?.loaded && (
+        <div className="banner info" role="note" data-sample-banner><Icon name="info" /><span className="text">{t("home.sampleLoaded")} <Link href="/settings/setup/#sample-data">{t("home.sampleRemove")}</Link></span></div>
+      )}
       {session && <Dashboard />}
       {demo && session && (session.role === "owner" || session.role === "accountant") && (
         <details className="card section demo-data" data-demo-data>

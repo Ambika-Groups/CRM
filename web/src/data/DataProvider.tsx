@@ -1,10 +1,9 @@
 "use client";
 import type { CommandArgs, CommandName, CommandResult, QuerySpec, Where } from "@ag/core";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { dataMode, firebaseConfigComplete } from "./config";
-import { DemoSource } from "./demo/demoSource";
-import { FirebaseSource } from "./firebase/firebaseSource";
-import type { DataSource, Session } from "./types";
+import { resolveConfig } from "./config";
+import { pendingSource } from "./pending";
+import type { AuthState, DataSource, Session } from "./types";
 
 interface Ctx {
   source: DataSource;
@@ -16,35 +15,48 @@ interface Ctx {
 
 const DataCtx = createContext<Ctx | null>(null);
 
-function createSource(): DataSource {
-  // Demo mode can never activate when Firebase config is present (D-37).
-  return dataMode === "firebase" ? new FirebaseSource() : new DemoSource();
+// One source per page load. Each is its own chunk, so a demo page never downloads the Firebase code and a Firebase
+// page never downloads the demo seed (the first screen is under 2 s on 4G, R15-2).
+let booting: Promise<DataSource> | null = null;
+function bootSource(): Promise<DataSource> {
+  booting ??= (async () => {
+    // Demo mode can never activate when any Firebase config is present (D-37).
+    const r = resolveConfig();
+    const source: DataSource = r.mode === "firebase"
+      ? new (await import("./firebase/firebaseSource")).FirebaseSource()
+      : new (await import("./demo/demoSource")).DemoSource();
+    await source.init();
+    return source;
+  })();
+  return booting;
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const source = useMemo(createSource, []);
+  const [source, setSource] = useState<DataSource>(pendingSource);
   const [status, setStatus] = useState<Ctx["status"]>("loading");
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
     let off = () => {};
+    let live = true;
     (async () => {
       try {
-        if (source.mode === "firebase" && !firebaseConfigComplete) {
-          throw new Error("The live database settings are incomplete. Check the NEXT_PUBLIC_FIREBASE_* settings in Netlify.");
-        }
-        await source.init();
-        off = source.subscribe(() => setVersion((v) => v + 1));
+        const next = await bootSource();
+        if (!live) return;
+        off = next.subscribe(() => setVersion((v) => v + 1));
+        setSource(next);
         setStatus("ready");
         document.documentElement.dataset.ready = "1"; // used by tools/ui-check.mjs
       } catch (e) {
+        booting = null;
+        if (!live) return;
         setError(e instanceof Error ? e.message : String(e));
         setStatus("error");
       }
     })();
-    return () => off();
-  }, [source]);
+    return () => { live = false; off(); };
+  }, []);
 
   return <DataCtx.Provider value={{ source, status, error, version }}>{children}</DataCtx.Provider>;
 }
@@ -53,6 +65,13 @@ export function useData(): Ctx {
   const c = useContext(DataCtx);
   if (!c) throw new Error("useData outside DataProvider");
   return c;
+}
+
+/** Firebase mode: where sign-in stands. Null in demo mode (there is nothing to sign in to). */
+export function useAuthState(): AuthState | null {
+  const { source, status, version } = useData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => (status === "ready" ? source.auth?.state() ?? null : null), [source, status, version]);
 }
 
 export function useSession(): Session | null {
@@ -139,7 +158,7 @@ export function usePaged<T extends { id: string }>(collection: string, spec: Omi
 /** Run a command; returns a function that resolves with the result or throws a CommandError. */
 export function useRun() {
   const { source } = useData();
-  return useCallback(<N extends CommandName>(name: N, args: CommandArgs<N>): Promise<CommandResult<N>> => source.run(name, args), [source]);
+  return useCallback(<N extends CommandName>(name: N, args: CommandArgs<N>, requestId?: string): Promise<CommandResult<N>> => source.run(name, args, requestId), [source]);
 }
 
 /** Online/offline state for the top bar indicator and the offline strip. */

@@ -43,3 +43,26 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+
+/*
+ * Push notifications (Firebase Cloud Messaging, Setup & integrations). FCM delivers a standard Web Push message; this
+ * shows it without loading the Firebase code into the worker, and opens the CRM when it is pressed.
+ */
+self.addEventListener("push", (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = {}; }
+  const n = data.notification || data.data || {};
+  const link = (data.fcmOptions && data.fcmOptions.link) || n.link || "/";
+  event.waitUntil(self.registration.showNotification(n.title || "Ambika CRM", { body: n.body || "", icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", data: { link } }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const link = (event.notification.data && event.notification.data.link) || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) { if ("focus" in w) { w.navigate(link).catch(() => undefined); return w.focus(); } }
+      return self.clients.openWindow(link);
+    }),
+  );
+});

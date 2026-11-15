@@ -232,6 +232,27 @@ export function createUser(store: MemoryStore, input: { name: string; email?: st
 }
 
 /** setRole callable: owner only; sets the claim and the users mirror together (D-05). */
+/** Active owners who are super users (D-48). */
+function activeSuperUsers(store: MemoryStore): User[] {
+  return store.list<User>("users", (x) => x.superUser === true && x.active && x.role === "owner", { field: "superUser", value: true });
+}
+
+/** There must always be one super user, or nobody could open Setup & integrations. */
+function keepASuperUser(store: MemoryStore, leaving: string, message: string): void {
+  const u = store.get<User>("users", leaving);
+  if (u?.superUser && activeSuperUsers(store).filter((x) => x.id !== leaving).length === 0) throw new CommandError(message);
+}
+
+/** Grant or revoke super user (D-48): super users only; the person must be an active owner; never the last one. */
+export function setSuperUser(store: MemoryStore, userId: string, superUser: boolean, ctx: CommandCtx): void {
+  if (!ctx.superUser) throw new CommandError("Only a super user can do this.");
+  const u = store.get<User>("users", userId);
+  if (!u) throw new CommandError("This user no longer exists.");
+  if (superUser && (u.role !== "owner" || !u.active)) throw new CommandError("Only an active owner can be a super user.");
+  if (!superUser) keepASuperUser(store, userId, "There must be at least one super user. Make someone else a super user first.");
+  store.merge("users", userId, { superUser, ...stampUpdate(ctx) });
+}
+
 export function setUserRole(store: MemoryStore, userId: string, role: Role, ctx: CommandCtx): void {
   requireRole(ctx, ["owner"], "change roles");
   if (!(ROLES as readonly string[]).includes(role)) throw new CommandError("Choose a role.");
@@ -240,12 +261,14 @@ export function setUserRole(store: MemoryStore, userId: string, role: Role, ctx:
   if (userId === ctx.uid && role !== "owner" && store.list<User>("users", (x) => x.role === "owner" && x.active, { field: "role", value: "owner" }).length <= 1) {
     throw new CommandError("You're the only owner. Make someone else an owner before changing your own role.");
   }
-  store.merge("users", userId, { role, ...stampUpdate(ctx) });
+  if (role !== "owner") keepASuperUser(store, userId, "This person is the only super user. Make someone else a super user first.");
+  store.merge("users", userId, { role, ...(role !== "owner" && u.superUser ? { superUser: false } : {}), ...stampUpdate(ctx) });
 }
 
 export function setUserActive(store: MemoryStore, userId: string, active: boolean, ctx: CommandCtx): void {
   requireRole(ctx, ["owner"], "turn users on or off");
   if (userId === ctx.uid && !active) throw new CommandError("You can't turn off your own access.");
+  if (!active) keepASuperUser(store, userId, "This person is the only super user. Make someone else a super user first.");
   store.merge("users", userId, { active, ...stampUpdate(ctx) });
 }
 

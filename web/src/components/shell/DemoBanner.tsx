@@ -1,5 +1,6 @@
 "use client";
 import { ROLE_LABELS } from "@ag/core";
+import Link from "next/link";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ export function DemoBanner() {
           ))}
         </select>
       </label>
+      <Link className="btn btn-text btn-sm" href="/settings/setup/" data-connect-link title={t("demo.connectHint")}><Icon name="settings" />{t("demo.connect")}</Link>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button variant="text" size="sm" data-open-reset><Icon name="reset" />{t("demo.reset")}</Button>

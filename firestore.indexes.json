@@ -927,6 +927,12 @@
   ],
   "fieldOverrides": [
     {
+      "collectionGroup": "command_requests",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
       "collectionGroup": "audit_log",
       "fieldPath": "oldValue",
       "indexes": []

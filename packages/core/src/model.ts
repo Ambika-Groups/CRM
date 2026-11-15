@@ -32,6 +32,10 @@ export interface User extends Audit {
   theme: "light" | "dark" | "system";
   projectIds: string[];
   defaultSalesUser?: boolean;
+  /** D-48: an owner who may open Setup & integrations. Becomes the `superUser` sign-in claim. */
+  superUser?: boolean;
+  /** Set by the server whenever the sign-in claims change, so open sessions refresh their token. */
+  claimsAt?: string;
 }
 
 export interface Client extends Audit {
