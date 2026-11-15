@@ -60,8 +60,49 @@ export class Checker {
 
 const AUTO = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
+/** When set, newId() takes its ids from here (see withIdSource). */
+let idSource: (() => string) | null = null;
+
+/** A fresh seed for a repeatable id sequence. */
+export function newIdSeed(): Uint32Array {
+  const seed = new Uint32Array(4);
+  globalThis.crypto.getRandomValues(seed);
+  return seed;
+}
+
+/** A repeatable sequence of 20-character ids: the same seed gives the same ids in the same order (xorshift128). */
+export function seededIds(seed: Uint32Array): () => string {
+  let a = seed[0]! | 0, b = seed[1]! | 0, c = seed[2]! | 0, d = seed[3]! | 0;
+  if ((a | b | c | d) === 0) a = 0x9e3779b9 | 0;
+  const next = () => {
+    let t = d;
+    const s0 = a;
+    d = c; c = b; b = s0;
+    t ^= t << 11; t ^= t >>> 8;
+    a = t ^ s0 ^ (s0 >>> 19);
+    return a >>> 0;
+  };
+  return () => {
+    let s = "";
+    for (let i = 0; i < 20; i++) s += AUTO[next() % AUTO.length];
+    return s;
+  };
+}
+
+/**
+ * Run `fn` with newId() taking its ids from `source`. The server runs a command several times while it loads what the
+ * command reads (server.ts runWithLoads); every run must make the same new ids, or a rerun would ask for records the
+ * run before never named. Not for overlapping commands: the server part runs one command at a time.
+ */
+export async function withIdSource<T>(source: () => string, fn: () => Promise<T>): Promise<T> {
+  const before = idSource;
+  idSource = source;
+  try { return await fn(); } finally { idSource = before; }
+}
+
 /** Firestore-style auto ID (20 characters). */
 export function newId(): string {
+  if (idSource) return idSource();
   let s = "";
   const bytes = new Uint8Array(20);
   globalThis.crypto.getRandomValues(bytes);

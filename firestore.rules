@@ -559,6 +559,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // What each client owes: written only by posting (D-07); read by the finance roles, as core canRead says.
+    match /client_balances/{id} {
+      allow read: if isFinanceReader();
+      allow write: if false;
+    }
+
     match /worker_balances/{id} {
       allow read: if hasRole(['owner', 'accountant', 'ca']);
       allow write: if false;

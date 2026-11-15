@@ -77,7 +77,7 @@ describe("command runner (transaction, posting, audit, replay)", () => {
 
   it("FN-03 a refusal changes nothing, and a switched-off person cannot run commands", async () => {
     const before = (await db.collection("clients").get()).size;
-    await expect(run("uAccountant", "createProject", { input: project })).rejects.toThrow();
+    await expect(run("uPm", "createProject", { input: project })).rejects.toThrow();
     expect((await db.collection("clients").get()).size).toBe(before);
     await db.doc("users/uPm").update({ active: false });
     await expect(run("uPm", "markAttendanceDay", { projectId: "projShivNagar", date: "2026-10-24", marks: [] })).rejects.toThrow(/switched off/);
@@ -108,8 +108,9 @@ describe("sign-in claims (D-05)", () => {
 
   it("FN-11 a role change, switching off, and an assignment update the person's claims", async () => {
     await auth.createUser({ uid: "uPm", email: "pm@example.com" });
+    await run("uOwner", "setAssignment", { projectId: "projShivNagar", userId: "uPm", assigned: false });
     await run("uOwner", "setAssignment", { projectId: "projShivNagar", userId: "uPm", assigned: true });
-    expect((await auth.getUser("uPm")).customClaims?.projects).toContain("projShivNagar");
+    expect((await auth.getUser("uPm")).customClaims?.projects ?? []).toContain("projShivNagar");
     await run("uOwner", "setUserRole", { userId: "uPm", role: "viewer" });
     expect((await auth.getUser("uPm")).customClaims?.role).toBe("viewer");
     await run("uOwner", "setUserActive", { userId: "uPm", active: false });

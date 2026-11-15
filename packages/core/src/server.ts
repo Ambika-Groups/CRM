@@ -8,7 +8,7 @@
  * missed something is thrown away, so a guess made on missing data never reaches the database.
  */
 import { seedCategories } from "./categories";
-import type { CommandCtx } from "./commands/common";
+import { newIdSeed, seededIds, withIdSource, type CommandCtx } from "./commands/common";
 import type { CommandArgs, CommandName, CommandResult } from "./commands/registry";
 import { DEFAULT_WORKER_ROLES } from "./commands/people";
 import type { Role, User } from "./model";
@@ -79,15 +79,18 @@ export const MAX_RUNS = 12;
 
 /**
  * Run a command until it misses nothing, loading what each run asked for. Returns the result and the changes to
- * write. A command error is only trusted from a complete run (one that missed nothing).
+ * write. A command error is only trusted from a complete run (one that missed nothing). `opts.idSeed` fixes the new
+ * ids (tests use it to compare with a direct run).
  */
-export async function runWithLoads<N extends CommandName>(loader: Loader, name: N, args: CommandArgs<N>, ctx: CommandCtx): Promise<{ result: CommandResult<N>; changes: JournalEntry[]; runs: number }> {
+export async function runWithLoads<N extends CommandName>(loader: Loader, name: N, args: CommandArgs<N>, ctx: CommandCtx, opts: { idSeed?: Uint32Array } = {}): Promise<{ result: CommandResult<N>; changes: JournalEntry[]; runs: number }> {
   const loaded = new Loaded();
+  // Every run makes the same new ids (the same seed, restarted), so a rerun asks only for what is really missing.
+  const idSeed = opts.idSeed ?? newIdSeed();
   for (let run = 1; run <= MAX_RUNS; run++) {
     const store = new LoadingStore(loaded);
     let out: { result: CommandResult<N>; changes: JournalEntry[] } | null = null;
     let error: unknown = null;
-    try { out = await runCommand(store, name, args, ctx); } catch (e) { error = e; }
+    try { out = await withIdSource(seededIds(idSeed), () => runCommand(store, name, args, ctx)); } catch (e) { error = e; }
     if (store.missedAnything) {
       await loader.load({ docs: [...store.missingDocs].map((p) => MemoryStore.split(p)), lists: [...store.missingLists.values()] }, loaded);
       continue;

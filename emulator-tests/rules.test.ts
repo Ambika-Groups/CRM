@@ -189,7 +189,9 @@ describe("users and preferences (D-05, D-52)", () => {
   it("T-381 nobody changes their own role, status, projects or super-user flag", async () => {
     for (const who of ["pm", "owner"] as const) {
       const id = PEOPLE[who]!.uid;
-      for (const patch of [{ role: "owner" }, { active: false }, { projectIds: ["x"] }, { superUser: true }]) {
+      const patches = who === "pm" ? [{ role: "owner" }, { active: false }, { projectIds: ["x"] }, { superUser: true }]
+        : [{ role: "accountant" }, { active: false }, { projectIds: ["x"] }, { superUser: false }];
+      for (const patch of patches) {
         await assertFails(updateDoc(doc(as(who), "users", id), { ...patch, updatedAt: serverTimestamp(), updatedBy: id }));
       }
     }
@@ -250,7 +252,7 @@ describe("the first owner, created by the rules alone (D-52)", () => {
   });
   it("T-392 any other address is refused, including a one-letter typo; an account with no email is refused", async () => {
     await clean();
-    await assertFails(attempt(asUid(NEW, tok({ email: OWNER_EMAIL })), ownerDoc(), marker()));
+    await assertFails(attempt(asUid(NEW, tok({ email: "business@ambikagroups.tech" })), ownerDoc(), marker()));
     await assertFails(attempt(asUid(NEW, tok({ email: "someone@gmail.com" })), ownerDoc({ email: "someone@gmail.com" }), marker({ email: "someone@gmail.com" })));
     await assertFails(attempt(asUid(NEW, { email_verified: true }), ownerDoc(), marker()));
   });

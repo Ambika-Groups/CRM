@@ -4,7 +4,7 @@
 // IDs SV-xxx are cited in docs/prd-traceability.md.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  auditFor, claimsFor, firstOwnerDocs, Loaded, LoadingStore, MemoryStore, runCommand, runWithLoads, seedDemo, usersToResync,
+  auditFor, claimsFor, firstOwnerDocs, Loaded, LoadingStore, MemoryStore, newIdSeed, runCommand, runWithLoads, seededIds, seedDemo, usersToResync, withIdSource,
   type CommandArgs, type CommandCtx, type CommandName, type Doc, type JournalEntry, type Loader, type LoadPlan,
 } from "../src";
 
@@ -50,11 +50,10 @@ async function parity<N extends CommandName>(name: N, args: CommandArgs<N>, ctx:
   const { store: db } = await seedDemo("2026-10-25");
   const direct = new MemoryStore();
   direct.load(structuredClone(db.snapshot()));
-  resetIds();
-  const a = await runCommand(direct, name, args, ctx);
-  resetIds();
+  const idSeed = new Uint32Array([11, 22, 33, 44]);
+  const a = await withIdSource(seededIds(idSeed), () => runCommand(direct, name, args, ctx));
   const loader = new MemLoader(db);
-  const b = await runWithLoads(loader, name, args, ctx);
+  const b = await runWithLoads(loader, name, args, ctx, { idSeed });
   apply(db, b.changes);
   expect(b.result).toEqual(a.result);
   expect(db.snapshot()).toEqual(direct.snapshot());
@@ -124,6 +123,35 @@ describe("atomic commands and audit", () => {
     expect((audit[0]!.after as unknown as { fields: string[] }).fields).toContain("name");
     // A command that writes its own audit entry (approvals) gets no second one.
     expect(auditFor("x", [{ collection: "audit_log", id: "a", before: null, after: { id: "a" } }], owner)).toBeNull();
+  });
+
+  it("SV-13 with real random ids a command that posts money still finishes in a few rounds of reads (each run makes the same new ids)", async () => {
+    vi.restoreAllMocks(); // real random ids, as on the server
+    const { store: db } = await seedDemo("2026-10-25");
+    const loader = new MemLoader(db);
+    const out = await runWithLoads(loader, "createWorkerPayment", { workerId: "w001", projectId: G, date: "2026-10-24", type: "wage", grossPaise: 400_000, mode: "cash", accountId: "accCash" } as never, accountant);
+    expect(out.runs).toBeLessThanOrEqual(4);
+    expect(loader.rounds).toBe(out.runs - 1);
+    const paid = out.changes.find((c) => c.collection === "worker_payments")!;
+    expect(out.changes.some((c) => c.collection === "expenses" && c.id === `wage_${paid.id}`)).toBe(true);
+    expect(out.changes.some((c) => c.collection === "postings" && c.id === `worker_payments_${paid.id}`)).toBe(true);
+    // Two commands never share ids.
+    const again = await runWithLoads(new MemLoader(db), "createWorkerPayment", { workerId: "w001", projectId: G, date: "2026-10-24", type: "wage", grossPaise: 100_000, mode: "cash", accountId: "accCash" } as never, accountant);
+    expect(again.changes.find((c) => c.collection === "worker_payments")!.id).not.toBe(paid.id);
+  });
+
+  it("SV-14 a seeded id sequence repeats exactly, and different seeds give different ids", async () => {
+    const a = seededIds(new Uint32Array([1, 2, 3, 4])), b = seededIds(new Uint32Array([1, 2, 3, 4])), c = seededIds(new Uint32Array([1, 2, 3, 5]));
+    const ids = [a(), a(), a()];
+    expect([b(), b(), b()]).toEqual(ids);
+    expect(new Set(ids).size).toBe(3);
+    expect(ids.every((x) => /^[A-Za-z0-9]{20}$/.test(x))).toBe(true);
+    expect(c()).not.toBe(ids[0]);
+    expect(seededIds(new Uint32Array(4))()).toMatch(/^[A-Za-z0-9]{20}$/);
+    expect(newIdSeed()).toHaveLength(4);
+    // Outside withIdSource, ids are random again.
+    const inside = await withIdSource(seededIds(new Uint32Array([9, 9, 9, 9])), async () => (await import("../src")).newId());
+    expect(inside).toBe(seededIds(new Uint32Array([9, 9, 9, 9]))());
   });
 
   it("SV-12 a loading store records what it hasn't got, and answers from what it has", () => {
