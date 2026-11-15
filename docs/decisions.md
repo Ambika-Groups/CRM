@@ -1,6 +1,6 @@
 # Ambika Group CRM: decisions log
 
-Phase 0 and build decisions. Draft 10, 26 Oct 2026 (adds D-47 role dashboards; brand.md v4.1 recorded in D-26; draft 9 added D-45 money on workers and D-46 attendance writes; draft 8 added D-42 viewer, D-43 CA, D-44 menu labels and the rule A change to D-32; draft 7 added D-41 App Check; draft 6 added D-37 to D-40 for the Phase 1 build; draft 5 added D-36).
+Phase 0 and build decisions. Draft 12, 16 Nov 2026 (adds D-51 Spark-only and D-52 roles from the users document; draft 11 added D-48 super user, D-49 secrets and D-50 where the connection settings live for M1.6; draft 10 added D-47 role dashboards; brand.md v4.1 recorded in D-26; draft 9 added D-45 money on workers and D-46 attendance writes; draft 8 added D-42 viewer, D-43 CA, D-44 menu labels and the rule A change to D-32; draft 7 added D-41 App Check; draft 6 added D-37 to D-40 for the Phase 1 build; draft 5 added D-36).
 
 Each entry names the spec conflict or gap it resolves, the rule we settled on, and the reason. "Supervisor" marks a ruling from the coordinating session. Anything marked **needs user** or **needs CA** is also in [open-questions.md](open-questions.md).
 
@@ -537,6 +537,57 @@ This replaces the D-30 table entry that let an assigned PM create `worker_paymen
 **Why:** the user asked for analytics of everything on Home; §11.1a already specifies role dashboards.
 
 ---
+
+### D-48 Super user and the Setup & integrations page
+**Source:** the user, via the supervisor, 15 Nov 2026. A small deviation from the PRD's six roles: the PRD has no "super user".
+**Rule:**
+- A **super user** is an **owner** whose users document says `superUser: true`. The first-owner step makes the first one. Super users can grant or revoke it for other **active owners** (core command `setSuperUser`), and there is always at least one (the last cannot be revoked, switched off or demoted; changing someone's role away from owner clears the flag).
+- It is mirrored as the sign-in claim `superUser` (D-05), set with the role claim by the server, and only for owners.
+- **Settings > Setup & integrations** (`/settings/setup/`) is for super users only: the menu item is hidden from everyone else, and the address shows "You don't have access". It is enforced in the **rules** (`isSuperUser()`: `integrations` read, `system_probe`) and in the **callables** (the users document is checked, not just the token).
+- **Every change** (save, clear, make a new key) needs a sign-in within the last **5 minutes** (`auth_time`), checked on the server; the page asks the person to sign in again and then retries. **Every change writes an audit entry** (who, what, when; field names only, never values).
+- **Every item has its own Test** (a Pass or Fail, one plain sentence, a fix hint, and the time it last passed). The page shows "N of M verified" (items whose latest Test passed; WhatsApp does not count).
+**Why:** the user wants everything set up from the front end, protected, without editing files or the console for each key.
+**Consequence:** the PM, supervisor, accountant, viewer and CA, and an owner who is not a super user, never see or open it. In the demo the owner is a super user and the page runs as a labelled **simulation** (no real secret is stored).
+
+### D-49 Secrets are write-only, in a server-only Firestore document
+**Source:** the user, via the supervisor, 15 Nov 2026.
+**Rule:**
+- Secret values (the Resend key, later the WhatsApp token) are saved by a callable into `private_config/{id}`, which **no client can read or write** (rules `if false`; only the Admin SDK in the functions). A client reads only `integrations/{id}`: the status, a **masked tail** (`••••1234`), the public values and the last Test result. **Secrets are never returned, logged, put in the audit log, or put in the build.**
+- The website's inbound key is made by the server, **shown once**, and only its **SHA-256 hash** is kept; the endpoint compares hashes.
+- Public values (reCAPTCHA site key, push web key, Maps key, the from-address) may be read by a super user's page.
+**Alternatives rejected:** Secret Manager's free tier is **6 active secret versions**, and each rotation adds a version, so six integrations plus rotations would leave the free plan; Firestore costs ₹0 and is encrypted at rest.
+**Consequence (I6):** **Firestore backups and exports contain these values.** They must never be written to the CA export or to any client-readable document, and the backup decision (open question I6) must say that backups are sensitive: kept private, never emailed or shared.
+
+### D-50 Where the Firebase web config lives, and what the no-config build does
+**Source:** the user, via the supervisor, 15 Nov 2026.
+**Rule:**
+- The Firebase web config (six public values) cannot be stored in Firestore, because it is needed to connect. **Netlify's Environment variables stay the source of truth** (D-36). The Setup page also lets a super user **paste the config block** (or fill the six fields), validates it, saves it on **this device only** (localStorage), and prints the exact `NEXT_PUBLIC_FIREBASE_*` lines to paste into Netlify for everyone else. The App Check site key works the same way.
+- Order of use: the build's variables, then this device's saved config, then none. **Demo mode never activates once any config is present** (D-37). A build with no config at all stays the **demo** (so the owner can open a Netlify demo before any account exists), with a prominent "Connect your own Firebase project" link to the Setup page. "Forget this device's config" is the explicit way back on a device with no build config.
+- App Check's enforce switch is **runtime**: the callables read `integrations/appCheck` and refuse calls without a valid App Check token when it is on (Firestore and Storage enforcement is switched in the console, DEPLOY.md).
+
+**Correction to D-46:** the offline queue **stays** in Firebase mode. Callables need a connection, so an offline attendance save is queued on the device, then sent with its own request id, so a retry can never save twice.
+
+### D-51 Spark-only (no payment method): overrides D-34 (Blaze accepted) and the Cloud Functions and Cloud Storage parts of D-36
+**Source:** the user, via the supervisor, 16 Nov 2026: the project `ambikagroupscrm` is on the Spark plan and will stay there.
+**Facts (official pages, 16 Nov 2026; docs/SPARK-PLAN.md):** Cloud Functions, Cloud Storage and phone-code (SMS) sign-in are not available on Spark. Firestore free: 1 GiB, 50,000 reads and 20,000 writes a day, 1 MiB per document. Email-link sign-in is limited to 5 emails a day.
+**Rule (approved architecture A):**
+- **Server part:** one Netlify Function running the SAME server code (command runner, posting, numbering, audit, super-user and setup logic, sample data, enquiry endpoint) behind an ID-token check, with the Firebase Admin SDK and a least-privilege service account held only in a Netlify environment variable. Reads stay direct from the browser to Firestore under the rules. Money integrity (D-07, D-08) is unchanged. A "no server at all" design was rejected: browsers would write money postings, numbers and audit.
+- **Files:** a storage adapter; the first implementation keeps compressed images in Firestore (under 1 MiB each, aim 80 to 150 KB); Cloudinary or Cloud Storage can replace it later. Aadhaar stays masked (D-22).
+- **Sign-in:** phone codes are dropped (supersedes the SMS part of D-35). Staff use Google or email and password set by the owner (a phone-only worker gets a pseudo-email). The email link is for the first owner only.
+- **Scheduled jobs:** a Netlify scheduled function nightly plus a catch-up when the owner opens the app. **Backups:** an owner-run JSON download (no managed export or point-in-time recovery on Spark).
+- **First owner, two paths:** (1) **rules-based (D-52), no server at all** and the fallback; (2) the Netlify bootstrap, which replaces it later.
+- **Also required:** a usage meter for the free limits (reads and writes a day, document count, photos against about 8,000) with warnings at 70% and 90%; cache-first reads; saves shown at once as pending, with confirmation later (the server is in Ohio and the database in Mumbai); a "Download backup" reminder after 7 days.
+**Netlify Free** has 300 credits a month as a hard limit (the site is paused at zero); a production deploy costs 15, so the wizard deploys previews first.
+
+### D-52 Roles come from the person's users document (no sign-in claims); the first owner is created by the rules
+**Source:** the user, via the supervisor, 16 Nov 2026: make the database work and sign in as admin, with no function.
+**Rule:**
+- **Roles:** the security rules read the caller's own `users/{uid}` document (role, active, superUser, projectIds) once per request, instead of custom sign-in claims (which need a server to set). Cost: one extra document read per request, counted once however many rules use it. The app reads the same document, so the screen and the rules always agree. `projectIds` replaces the "projects" claim. A switched-off person (`active: false`) is refused everywhere, but can read their own document so the app can say so.
+- **First owner, no server:** a person whose **verified** email equals `ownerEmail()` in `firestore.rules` (currently business@ambikagroups.tech, case ignored) writes, in ONE batch, their own users document (role owner, superUser true, active, no projects, no other fields) and the marker `system/owner`. The rules allow it only while `system/owner` does not exist, so it happens once. The client then writes the company placeholders.
+- **Why "verified":** an account the owner adds in the console starts unverified; pressing the emailed link verifies it. Requiring this means nobody else can claim the owner address first, even if sign-up is open before the console account exists. After the owner exists, switch off "Enable create (sign-up)" in Authentication > Settings.
+- **Owners manage others:** an owner can change another person's role, on/off, projects and contact details, but nobody changes their own role, status, projects or super-user flag (no self lock-out); only a super user changes the super-user flag.
+- **Not available without a server:** creating other people's sign-in accounts, all posted records, numbering, rollups and audit (those stay server-only, D-07/D-08, and say plainly that the server part is not connected yet). The built-in expense heads live in the code, so none need to be written first.
+**Tests:** docs/rules-test-matrix.md §19 (T-300 to T-396), run on the emulator in CI. Verified so far: the rules text was reviewed and the client is type-checked and built; the real browser job checks the sign-in screen against the real project; the first-owner write itself is verified only on the user's first run.
 
 ## Phase 1 notes
 

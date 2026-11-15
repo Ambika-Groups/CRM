@@ -482,3 +482,34 @@ Fixtures as §17. `uOwner` unlocked `projShivNagar_2026-10-20` (`untilTs` = now 
 | T-385 | anyone writes `attendance_unlocks` or `contract_scopes` from a client | ❌ (functions only) |
 | T-386 | owner writes `workers/wMohanLal.crewSiteIds` from a client | ❌ (function-maintained) |
 | T-387 | ca gets `worker_payments/x` and `thekedar_contracts/tcShivNagarCC` | ✅ ✅ (accounting records, D-43) |
+
+## 19. Roles from the users document, the first owner, server-only collections, Setup & integrations (M1.6: D-48, D-49, D-52)
+
+These run on the Firebase emulators in CI (`emulator-tests/rules.test.ts`, `npm run test:emulator`). Roles are read from each person's `users/{uid}` document (D-52); the tests seed no sign-in claims.
+
+| ID | Check |
+|---|---|
+| PARITY | For each of the six roles and a sample of every seeded collection (including project detail records and the private pay, budget and commercial documents), the rules allow a read exactly when core's `canRead` says so |
+| T-300 | No signed-in role, not even the owner, can write `rollups`, `finance_rollups`, `postings`, `counters`, `account_transactions`, `worker_balances`, `audit_log`, `command_requests`, `private_config`, `processed_events` from a browser |
+| T-301 | Signed out: nothing is readable, including `system/owner` |
+| T-302 | A signed-in account with no users document reads nothing except its own (missing) document and `system/owner` |
+| T-303 | A person who is switched off (`active: false`) reads nothing, but can read their own document |
+| T-304 | `command_requests` and `private_config` are closed to everyone, a super user included |
+| T-370 | `integrations` is readable only by an owner whose document says superUser (not a plain owner, accountant, PM, supervisor, viewer or CA) |
+| T-371 | `integrations` cannot be written, updated or deleted from a client, a super user included |
+| T-372 | `system_probe` (the Firestore Test) is read and written only by a super user |
+| T-373 | A super-user flag on a non-owner opens nothing |
+| T-380 | A person changes only their own language and theme, stamped by the server clock |
+| T-381 | Nobody changes their own role, status, projects or super-user flag (the owner included) |
+| T-382 | An owner manages OTHER people's role, on/off and projects; an accountant cannot; an unknown role is refused; only a super user changes the super-user flag |
+| T-383 | A site role reads only their own user document; owner and accountant read all; the CA does not |
+| T-384 | Nobody creates another person's document or deletes one from a browser |
+| T-390 | The verified owner address (any capitals) creates its users document and `system/owner` in one batch, then works as a super user; the marker can never change or be removed |
+| T-391 | An unverified email is refused |
+| T-392 | Any other address (including a one-letter typo) and an account with no email are refused |
+| T-393 | Once an owner exists, nobody can do it again, even the same address |
+| T-394 | The document must be exactly a first owner: role owner, super user, on, no projects, no extra fields, the owner address |
+| T-395 | Both documents or neither: one alone is refused |
+| T-396 | The documents must be the signer's own: not another person's id, and not a marker naming someone else |
+
+The functions tests (`emulator-tests/functions.test.ts`, FN-01…FN-35) cover the transaction runner and the Setup and sample-data logic that will run inside the Netlify Function (D-51).

@@ -15,6 +15,8 @@ service firebase.storage {
     function isFinance() { return hasRole(['owner', 'accountant']); }
     function seesAllProjects() { return hasRole(['owner', 'accountant', 'viewer', 'ca']); }
     function isSiteRole() { return hasRole(['pm', 'supervisor']); }
+    // D-48: an owner whose sign-in claim says superUser.
+    function isSuper() { return hasRole(['owner']) && 'superUser' in request.auth.token && request.auth.token.superUser == true; }
 
     function assigned(pid) {
       return uid() in firestore.get(/databases/(default)/documents/projects/$(pid)).data.assignedUsers;
@@ -121,6 +123,12 @@ service firebase.storage {
       allow read: if hasRole(['owner', 'accountant', 'ca'])
         || (docType in ['payout_sheet', 'dpr'] && hasRole(['pm']));
       allow write: if false;
+    }
+
+    // The Storage Test on Setup & integrations (D-48) uploads one tiny file here and deletes it.
+    match /system_probe/{file} {
+      allow read, delete: if isSuper();
+      allow create, update: if isSuper() && request.resource.size < 1024;
     }
 
     // CA exports, written by the export function.
