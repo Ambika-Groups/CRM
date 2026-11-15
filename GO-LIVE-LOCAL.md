@@ -5,7 +5,7 @@ your real, empty database. It works on the free Firebase plan (Spark) with **no 
 Allow 20 minutes. Commands are typed in **PowerShell**, inside the `CRM` folder.
 
 Your project is **`ambikagroupscrm`** and its settings are already in `web\.env.local` (private, never uploaded).
-Your owner address is **`business@ambikagroups.tech`** (it is written in `firestore.rules`; see "If the address is different" below).
+Your owner address is **`bussiness@ambikagroups.tech`** (it is written in `firestore.rules`; see "If the address is different" below).
 
 ## The 6 steps
 
@@ -21,7 +21,7 @@ Your owner address is **`business@ambikagroups.tech`** (it is written in `firest
   ```
   (This also sends the search indexes. With the console way, if a list ever says "an index is needed", press the link in that message once.)
 
-**2. Add your sign-in.** Console > **Authentication > Users > Add user**. Email `business@ambikagroups.tech`, and a password you will remember.
+**2. Add your sign-in.** Console > **Authentication > Users > Add user**. Email `bussiness@ambikagroups.tech`, and a password you will remember.
 (Email/Password sign-in must be turned on under Sign-in method; it already is.)
 
 **3. Start the CRM and sign in.**
@@ -30,7 +30,7 @@ npm run dev:live
 ```
 Open <http://localhost:3100>. Type the email and password and press **Sign in**. You will see **"Your account isn't set up yet"**.
 
-**4. Verify your email.** Press **Send verification email**, open the email we sent to `business@ambikagroups.tech`, press the link, come back to the page and press **Check again**.
+**4. Verify your email.** Press **Send verification email**, open the email we sent to `bussiness@ambikagroups.tech`, press the link, come back to the page and press **Check again**.
 (This step is what stops anyone else from claiming the owner address before you.)
 
 **5. Press "Set up as the first owner".** The CRM opens on your real database. You are the **owner and the super user**. It is empty, and Home says what to add first.
@@ -60,7 +60,7 @@ At any point, `npm run golive` checks what is switched on in your project and pr
 
 ## If the address is different
 
-The owner address is written in two places that must match: `ownerEmail()` near the top of `firestore.rules`, and (optionally) `NEXT_PUBLIC_OWNER_EMAIL` in `web\.env.local` (it only lets the screen show a typo hint; the rules decide). To use another address, change `ownerEmail()`, publish the rules again (step 1), and add that address in step 2.
+The owner address (spelled with two s's: `bussiness@ambikagroups.tech`) is written in `ownerEmail()` near the top of `firestore.rules`. That is the authority. The app keeps one copy of it (`OWNER_EMAIL` in `packages/core/src/server.ts`, used only to show a typo hint), and the automatic test SU-25 fails if the two differ. To use another address, change both, publish the rules again (step 1), and add that address in step 2.
 
 ## Trying it from the demo
 

@@ -1,8 +1,9 @@
 // Setup & integrations (D-48, D-49): the super user, sign-in claims, integration validation, the Firebase web config,
 // and the "N of M verified" count. IDs SU-xxx are cited in docs/prd-traceability.md.
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  canBecomeFirstOwner, claimsFor, firebaseConfigToEnv, ownerHint, INTEGRATIONS, INTEGRATION_IDS, maskSecret, parseFirebaseConfigBlock, runCommand, seedDemo, setSuperUser,
+  canBecomeFirstOwner, claimsFor, OWNER_EMAIL, firebaseConfigToEnv, ownerHint, INTEGRATIONS, INTEGRATION_IDS, maskSecret, parseFirebaseConfigBlock, runCommand, seedDemo, setSuperUser,
   signedInRecently, usersToResync, validateFirebaseConfig, validateIntegration, verifiedSummary,
   type CommandCtx, type IntegrationStatus, type MemoryStore, type User,
 } from "../src";
@@ -141,19 +142,27 @@ describe("Firebase web config (item 1)", () => {
 
 describe("first owner (OWNER_EMAIL)", () => {
   it("SU-23 the owner address matches ignoring capitals and spaces, and the email must be verified", () => {
-    expect(canBecomeFirstOwner("business@ambikagroups.tech", { email: "Business@AmbikaGroups.Tech", email_verified: true })).toMatchObject({ ok: true });
-    expect(canBecomeFirstOwner("  Business@ambikagroups.tech ", { email: "business@ambikagroups.tech", email_verified: true }).ok).toBe(true);
-    expect(canBecomeFirstOwner("business@ambikagroups.tech", { email: "business@ambikagroups.tech", email_verified: false })).toMatchObject({ ok: false, why: "unverified" });
-    expect(canBecomeFirstOwner("business@ambikagroups.tech", { email: "bussiness@ambikagroups.tech", email_verified: true })).toMatchObject({ ok: false, why: "different" });
+    expect(canBecomeFirstOwner("bussiness@ambikagroups.tech", { email: "Bussiness@AmbikaGroups.Tech", email_verified: true })).toMatchObject({ ok: true });
+    expect(canBecomeFirstOwner("  Bussiness@ambikagroups.tech ", { email: "bussiness@ambikagroups.tech", email_verified: true }).ok).toBe(true);
+    expect(canBecomeFirstOwner("bussiness@ambikagroups.tech", { email: "bussiness@ambikagroups.tech", email_verified: false })).toMatchObject({ ok: false, why: "unverified" });
+    expect(canBecomeFirstOwner("bussiness@ambikagroups.tech", { email: "business@ambikagroups.tech", email_verified: true })).toMatchObject({ ok: false, why: "different" });
     expect(canBecomeFirstOwner(undefined, { email: "a@b.in", email_verified: true })).toMatchObject({ ok: false, why: "noOwnerConfigured" });
     expect(canBecomeFirstOwner("", { email: "a@b.in", email_verified: true }).ok).toBe(false);
   });
 
   it("SU-24 the typo hint shows the shape of the owner address only to someone on the same domain", () => {
-    expect(ownerHint("business@ambikagroups.tech", "bussiness@ambikagroups.tech")).toBe("b••••••s@ambikagroups.tech");
-    expect(ownerHint("business@ambikagroups.tech", "someone@gmail.com")).toBeNull();
+    expect(ownerHint("bussiness@ambikagroups.tech", "business@ambikagroups.tech")).toBe("b•••••••s@ambikagroups.tech");
+    expect(ownerHint("bussiness@ambikagroups.tech", "someone@gmail.com")).toBeNull();
     expect(ownerHint(undefined, "x@y.in")).toBeNull();
-    // 8 letters before the @ in the real address, 9 in the typo: the dots make the difference visible.
-    expect(ownerHint("business@ambikagroups.tech", "x@ambikagroups.tech")!.split("@")[0]!.length).toBe(8);
+    // 9 letters before the @ in the real address (8 in the typo "business"): the dots make the difference visible.
+    expect(ownerHint("bussiness@ambikagroups.tech", "x@ambikagroups.tech")!.split("@")[0]!.length).toBe(9);
+  });
+});
+
+describe("the owner address has one copy in code (D-52)", () => {
+  it("SU-25 OWNER_EMAIL equals ownerEmail() in firestore.rules, the authority", () => {
+    const rules = readFileSync(new URL("../../../firestore.rules", import.meta.url), "utf8");
+    const m = /function ownerEmail\(\)\s*\{\s*return '([^']+)';/.exec(rules);
+    expect(m?.[1]).toBe(OWNER_EMAIL);
   });
 });

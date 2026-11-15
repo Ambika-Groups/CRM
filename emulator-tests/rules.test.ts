@@ -5,7 +5,7 @@
 //     preferences, and the first-owner rules (D-52). Roles are read from each person's users document, not from claims.
 //     IDs T-xxx follow docs/rules-test-matrix.md.
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { canRead, seedDemo, type Doc, type Role, type User } from "@ag/core";
+import { canRead, OWNER_EMAIL, seedDemo, type Doc, type Role, type User } from "@ag/core";
 import { collection, deleteDoc, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, updateDoc, writeBatch } from "firebase/firestore";
 import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -217,12 +217,12 @@ describe("users and preferences (D-05, D-52)", () => {
 
 describe("the first owner, created by the rules alone (D-52)", () => {
   const NEW = "uNewOwner";
-  const tok = (over: Record<string, unknown> = {}) => ({ email: "Business@AmbikaGroups.Tech", email_verified: true, ...over });
+  const tok = (over: Record<string, unknown> = {}) => ({ email: OWNER_EMAIL.toUpperCase(), email_verified: true, ...over });
   const ownerDoc = (over: Record<string, unknown> = {}) => ({
-    name: "Business Owner", email: "bussiness@ambikagroups.tech", phone: "", role: "owner", active: true, superUser: true, language: "en", theme: "system", projectIds: [],
+    name: "Business Owner", email: OWNER_EMAIL, phone: "", role: "owner", active: true, superUser: true, language: "en", theme: "system", projectIds: [],
     createdAt: serverTimestamp(), updatedAt: serverTimestamp(), createdBy: NEW, updatedBy: NEW, ...over,
   });
-  const marker = (over: Record<string, unknown> = {}) => ({ uid: NEW, email: "bussiness@ambikagroups.tech", at: serverTimestamp(), ...over });
+  const marker = (over: Record<string, unknown> = {}) => ({ uid: NEW, email: OWNER_EMAIL, at: serverTimestamp(), ...over });
   const attempt = async (db: ReturnType<typeof asUid>, u: Record<string, unknown>, m: Record<string, unknown>, uid = NEW) => {
     const b = writeBatch(db);
     b.set(doc(db, "users", uid), u);
@@ -250,7 +250,7 @@ describe("the first owner, created by the rules alone (D-52)", () => {
   });
   it("T-392 any other address is refused, including a one-letter typo; an account with no email is refused", async () => {
     await clean();
-    await assertFails(attempt(asUid(NEW, tok({ email: "bussiness@ambikagroups.tech" })), ownerDoc(), marker()));
+    await assertFails(attempt(asUid(NEW, tok({ email: OWNER_EMAIL })), ownerDoc(), marker()));
     await assertFails(attempt(asUid(NEW, tok({ email: "someone@gmail.com" })), ownerDoc({ email: "someone@gmail.com" }), marker({ email: "someone@gmail.com" })));
     await assertFails(attempt(asUid(NEW, { email_verified: true }), ownerDoc(), marker()));
   });

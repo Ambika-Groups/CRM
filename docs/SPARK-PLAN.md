@@ -34,7 +34,7 @@ Not confirmed from a page: the 4 KB total for function variables on Free; custom
 | Server PDFs (Phase 2) | Generated in the browser (client PDF library) |
 | Firestore backups/export | **Not available on Spark.** Plan: owner-run "Download backup" (JSON) from Settings, monthly, and the weekly scheduled export to the owner's email (size permitting). No point-in-time recovery. |
 | `npm run setup` | Firestore database + Authentication + rules + indexes through the Firebase CLI and REST (all work on Spark), the least-privilege service account and its key (created by the wizard, set straight into Netlify, never written to disk), the Netlify site, variables and deploy, then `verify:live` |
-| First owner | Same bootstrap, in the Netlify Function: the user adds `business@ambikagroups.tech` (Email/Password) in the console, signs in, presses **Verify email** (a console-added address is not verified), then **Set up as the first owner** |
+| First owner | Same bootstrap, in the Netlify Function: the user adds `bussiness@ambikagroups.tech` (Email/Password) in the console, signs in, presses **Verify email** (a console-added address is not verified), then **Set up as the first owner** |
 
 ## The numbers (assumptions stated; these are estimates, not measurements)
 

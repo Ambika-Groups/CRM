@@ -20,7 +20,7 @@ describe("preflight (phase 1)", () => {
     const out = await preflight.run(ctx);
     expect(statuses(out)).toMatchObject({ node: "ok", packages: "ok", webenv: "ok", owner: "ok", git: "ok" });
     expect(JSON.stringify(out)).not.toContain(API_KEY);
-    expect(ctx.state).toMatchObject({ project: PROJECT, ownerEmail: "business@ambikagroups.tech" });
+    expect(ctx.state).toMatchObject({ project: PROJECT, ownerEmail: "bussiness@ambikagroups.tech" });
   });
 
   it("W-02 names exactly what is missing or wrong, and fails", async () => {
@@ -262,7 +262,7 @@ describe("first owner (phase 9)", () => {
   it("W-60 prints the steps; an owner that exists is recognised; waiting is opt-in", async () => {
     const w = fakeWorld();
     const deps = makeDeps(w);
-    const ctx = makeCtx(deps, { yes: true }, { project: PROJECT, ownerEmail: "business@ambikagroups.tech" });
+    const ctx = makeCtx(deps, { yes: true }, { project: PROJECT, ownerEmail: "bussiness@ambikagroups.tech" });
     expect((await owner.run(ctx))[0].status).toBe("manual");
     expect(deps._log.join("\n")).toContain("Set up as the first owner");
     w.bootstrapped = true;

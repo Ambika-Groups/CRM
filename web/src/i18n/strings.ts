@@ -69,9 +69,9 @@ export const en = {
       database: "You are signed in, but the database could not be reached. In the Firebase console open Firestore Database and create the (default) database in asia-south1 (GO-LIVE-LOCAL.md, step 3), then press Check again.",
     },
     notSet: {
-      ownerMismatch: "You are signed in as {{email}}, but the owner address set up for this project looks like {{hint}}. The two must match exactly (capital letters do not matter). If the project's address is wrong, fix OWNER_EMAIL in functions\\.env and deploy again.",
+      ownerMismatch: "You are signed in as {{email}}, but the owner address set up for this project looks like {{hint}}. The two must match exactly (capital letters do not matter). If the project's address is wrong, ask whoever set up the project to change it in firestore.rules (ownerEmail) and publish the rules again.",
       serverMissing: "The server part of the CRM is not deployed yet, so the first owner can't be set up. Run the deploy command in GO-LIVE-LOCAL.md (step 7), then press Check again.",
-      ownerEmail: "If you are the owner: put your Google address in functions\\.env as OWNER_EMAIL, deploy again, then press Check again (GO-LIVE-LOCAL.md, steps 6 and 7).",
+      ownerEmail: "If you are the owner: sign in with the exact owner address, or have it changed in firestore.rules and the rules published again, then press Check again (GO-LIVE-LOCAL.md, \"If the address is different\").",
       title: "Your account isn't set up yet", body: "You are signed in as {{email}}, but you haven't been added to the CRM yet. Ask the owner to add this email address or phone number.",
       check: "Check again", signOut: "Sign out", firstTitle: "You are the first one here",
       firstBody: "Your email address is the one this project was set up for. Set yourself up as the first owner. You will also be the super user, who can open Setup & integrations.",

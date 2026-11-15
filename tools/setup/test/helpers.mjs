@@ -34,7 +34,7 @@ export function fakeWorld(over = {}) {
 export function makeDeps(world = fakeWorld(), { files = {}, prompts = [], now = 1_000_000 } = {}) {
   const fsMap = new Map(Object.entries({
     "/crm/web/.env.local": WEB_ENV,
-    "/crm/functions/.env": "OWNER_EMAIL=business@ambikagroups.tech\n",
+    "/crm/functions/.env": "OWNER_EMAIL=bussiness@ambikagroups.tech\n",
     "/crm/node_modules/x": "",
     ...files,
   }));

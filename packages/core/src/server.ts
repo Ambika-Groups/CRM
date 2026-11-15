@@ -161,6 +161,12 @@ export function firstOwnerDocs(owner: { uid: string; name: string; email: string
 export interface TokenFacts { email?: unknown; email_verified?: unknown }
 
 /**
+ * The first owner's email address (D-52). The ONE copy in the app's code; the authority is `ownerEmail()` in firestore.rules,
+ * and the test SU-25 fails if the two ever differ. The screen uses this only to show a typo hint; the rules decide.
+ */
+export const OWNER_EMAIL = "bussiness@ambikagroups.tech";
+
+/**
  * May this signed-in person be set up as the first owner? Their email must be verified (Google and email-link sign-in always
  * are), and equal to OWNER_EMAIL ignoring capital letters and stray spaces. A person who signed up with a password has an
  * unverified email until they press the link we send them.
