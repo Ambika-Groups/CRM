@@ -16,6 +16,12 @@ export interface CommandCtx {
   superUser?: boolean;
 }
 
+/**
+ * The shape of every command. A feature exports its own map from `commands/<feature>.ts`
+ * (`export const EXPENSE_COMMANDS = { ... } satisfies Record<string, CommandFn>`); the registry spreads the maps together.
+ */
+export type CommandFn = (store: MemoryStore, args: never, ctx: CommandCtx) => unknown;
+
 /** A refusal or validation failure the UI shows as-is. `fields` maps a field name to its message. */
 export class CommandError extends Error {
   constructor(message: string, readonly fields: Record<string, string> = {}) {

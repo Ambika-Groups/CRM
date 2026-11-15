@@ -39,6 +39,8 @@ function rng(seed: number) {
 
 const R = (rupees: number) => Math.round(rupees * 100);
 
+import { FEATURE_SEEDS } from "./features";
+
 export const DEMO_IDS = {
   owner: "uOwner", accountant: "uAccountant", pm: "uPm", sup1: "uSupShivNagar", sup2: "uSupGomti", viewer: "uViewer", ca: "uCa",
   projGov: "projShivNagar", projApt: "projGomti", projHouse: "projSharma",
@@ -538,6 +540,9 @@ export async function seedDemo(anchor: string): Promise<{ store: MemoryStore; su
       deductionHeads: [{ head: "TDS, income tax", rateBp: 200 }, { head: "GST-TDS", rateBp: 200 }, { head: "Labour cess", rateBp: 100 }, { head: "Retention", rateBp: 500 }],
     },
   });
+
+  // Demo data owned by features (demo/features.ts), after the base records they build on.
+  for (const seed of FEATURE_SEEDS) await seed({ store, anchor, nowIso: now, ownerUid: DEMO_IDS.owner });
 
   const generated = store.list<Expense>("expenses", (e) => e.source !== "manual").length;
   return {

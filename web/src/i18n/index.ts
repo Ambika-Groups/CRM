@@ -4,6 +4,7 @@
 // strings are their own file, fetched when Hindi is chosen (so the first screen stays light, R15-2).
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import { featureEn } from "./features";
 import { en } from "./strings";
 
 export type Lang = "en" | "hi";
@@ -21,7 +22,7 @@ export function storedLang(): Lang {
 
 if (!i18n.isInitialized) {
   void i18n.use(initReactI18next).init({
-    resources: { en: { translation: en } },
+    resources: { en: { translation: { ...en, ...featureEn } } },
     lng: "en",
     fallbackLng: "en",
     interpolation: { escapeValue: false },
@@ -31,7 +32,7 @@ if (!i18n.isInitialized) {
 
 let hindi: Promise<void> | null = null;
 function ensureHindi(): Promise<void> {
-  hindi ??= import("./strings-hi").then((m) => { i18n.addResourceBundle("hi", "translation", m.hi, true, true); });
+  hindi ??= Promise.all([import("./strings-hi"), import("./features/index-hi")]).then(([m, f]) => { i18n.addResourceBundle("hi", "translation", { ...m.hi, ...f.featureHi }, true, true); });
   return hindi;
 }
 

@@ -5,14 +5,14 @@
 import { approveExpense, rejectExpense } from "../actions";
 import type { MemoryStore } from "../store";
 import { createClient, updateClient } from "./clients";
-import type { CommandCtx } from "./common";
+import type { CommandFn } from "./common";
+// <commands:imports> one line per feature (lane lead only, append only)
+// </commands:imports>
 import { createUser, requestRateChange, saveKyc, saveWorker, setAssignment, setRoster, setSuperUser, setUserActive, setUserRole, updateSettings } from "./people";
 import {
   addContractMeasurement, approveWorkerPayments, createWorkerPayment, markAttendanceDay, payPayout, rejectWorkerPayment, saveProjectTerms, saveThekedarContract, unlockAttendanceDay,
 } from "./labour";
 import { approveEot, createProject, deleteProject, saveProjectChild, setArchived, updateProgress, updateProject } from "./projects";
-
-type Fn = (store: MemoryStore, args: never, ctx: CommandCtx) => unknown;
 
 export const COMMANDS = {
   createClient: (s, a: { input: Parameters<typeof createClient>[1] }, c) => createClient(s, a.input, c),
@@ -45,7 +45,9 @@ export const COMMANDS = {
   payPayout: (s, a: Parameters<typeof payPayout>[1], c) => payPayout(s, a, c),
   saveThekedarContract: (s, a: Parameters<typeof saveThekedarContract>[1], c) => saveThekedarContract(s, a, c),
   addContractMeasurement: (s, a: Parameters<typeof addContractMeasurement>[1], c) => addContractMeasurement(s, a, c),
-} satisfies Record<string, Fn>;
+  // <commands:maps> one spread per feature, for example ...EXPENSE_COMMANDS (lane lead only, append only)
+  // </commands:maps>
+} satisfies Record<string, CommandFn>;
 
 export type CommandName = keyof typeof COMMANDS;
 export type CommandArgs<N extends CommandName> = Parameters<(typeof COMMANDS)[N]>[1];
