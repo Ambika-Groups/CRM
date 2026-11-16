@@ -30,6 +30,10 @@
 /* Radix dialog: the overlay and the content are siblings, so the content positions itself. */
 .dialog-fixed { position: fixed; z-index: 51; left: 50%; top: 50%; transform: translate(-50%, -50%); width: calc(100% - 2 * var(--space-4)); }
 @media (max-width: 599px) { .dialog-fixed { top: auto; bottom: 0; left: 0; transform: none; width: 100%; } }
+/* A long form inside a dialog is never taller than the screen: the dialog scrolls and its buttons stay in view. */
+.dialog-fixed { max-height: calc(100dvh - 2 * var(--space-4)); overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 599px) { .dialog-fixed { max-height: 92dvh; } }
+.dialog-fixed .dialog-actions { position: sticky; bottom: calc(-1 * var(--space-6)); z-index: 1; margin-bottom: calc(-1 * var(--space-6)); padding: var(--space-3) 0 var(--space-6); background: var(--color-elevated); }
 .scrim:empty { display: block; }
 
 /* ---------- M1.2 UI kit ---------- */
