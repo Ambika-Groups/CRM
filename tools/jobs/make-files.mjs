@@ -10,7 +10,7 @@
 import { writeFileSync } from "node:fs";
 
 const J = [];
-const add = (name, width, o = {}) => J.push({ path: "/settings/files-check/", name, width, theme: o.theme ?? "light", shot: o.shot ?? true, ...o });
+const add = (name, width, o = {}) => J.push({ path: "/settings/files-check/", name, width, theme: o.theme ?? "light", shot: o.shot ?? true, lang: "en", ...o });
 
 // Helpers shared by the actions and expects (run inside the page).
 const H = `const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));

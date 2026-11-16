@@ -16,6 +16,6 @@ export const pendingSource: DataSource = {
   async query<T extends { id: string }>(): Promise<Page<T>> { return { items: [], next: null, total: 0 }; },
   async count() { return 0; },
   async listSmall<T>() { return [] as T[]; },
-  async run() { throw new CommandError("Not ready yet."); },
+  async run() { throw Object.assign(new CommandError("Not ready yet."), { retry: true }); },
   async setPreference() {},
 };

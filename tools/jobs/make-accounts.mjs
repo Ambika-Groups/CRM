@@ -13,7 +13,7 @@ const LAST_MONTH = lastMonthDate.toISOString().slice(0, 7);
 const LAST_MONTH_15 = `15/${LAST_MONTH.slice(5, 7)}/${LAST_MONTH.slice(0, 4)}`;
 
 const J = [];
-const add = (path, name, width, o = {}) => J.push({ path, name, width, theme: o.theme ?? "light", shot: o.shot ?? true, ...o });
+const add = (path, name, width, o = {}) => J.push({ path, name, width, theme: o.theme ?? "light", shot: o.shot ?? true, lang: "en", ...o });
 
 // Helpers shared by the actions and expects (run inside the page).
 const H = `const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));

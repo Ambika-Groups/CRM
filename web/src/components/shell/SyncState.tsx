@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useOnline, useRun } from "@/data/DataProvider";
+import { useData, useOnline, useRun } from "@/data/DataProvider";
 import { discardQueued, flushQueue, sendingCount, useQueue } from "@/lib/queue";
 import { Icon } from "./Icon";
 import { useToast } from "@/components/ui/feedback";
@@ -34,6 +34,7 @@ export function SyncStrip() {
   const { t } = useTranslation();
   const online = useOnline();
   const run = useRun();
+  const { status } = useData();
   const toast = useToast();
   const queue = useQueue();
   const busy = useRef(false);
@@ -48,10 +49,11 @@ export function SyncStrip() {
   }, [queue]);
 
   useEffect(() => {
-    if (!online || !pending || busy.current) return;
+    // Only once the app has started: before that there is nothing to send to.
+    if (status !== "ready" || !online || !pending || busy.current) return;
     busy.current = true;
     void flushQueue(run as never).then((n) => { if (n) toast(t("sync.sent", { n })); }).finally(() => { busy.current = false; });
-  }, [online, pending, run, toast, t, tick]);
+  }, [status, online, pending, run, toast, t, tick]);
 
   const failed = queue.filter((q) => q.error);
   if (online && !failed.length) return null;
