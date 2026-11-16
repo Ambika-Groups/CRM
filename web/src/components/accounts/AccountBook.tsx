@@ -69,7 +69,8 @@ export function AccountBook() {
     return { opening, closing };
   });
   const cur = stack[stack.length - 1]!;
-  const page = useRead(`book-page:${id}:${range.from}:${range.to}:${cur.after}`, (s) => (account
+  // The key says whether the account has arrived: the first read happens before it has, and must be done again after.
+  const page = useRead(`book-page:${account ? id : "none"}:${range.from}:${range.to}:${cur.after}`, (s) => (account
     ? s.query<AccountTxn>("account_transactions", { ...rowsQuery(account.id, range.from, range.to), limit: 50, after: cur.after })
     : Promise.resolve(undefined)));
 
