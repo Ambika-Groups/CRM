@@ -24,7 +24,8 @@ export interface SetupCtx {
 const WHERE_URL: Partial<Record<IntegrationId, string>> = {
   firebaseConfig: "https://console.firebase.google.com/",
   firestore: "https://console.firebase.google.com/",
-  storage: "https://console.firebase.google.com/",
+  storageR2: "https://dash.cloudflare.com/?to=/:account/r2/overview",
+  storageCloudinary: "https://console.cloudinary.com/settings/upload",
   signIn: "https://console.firebase.google.com/",
   appCheck: "https://www.google.com/recaptcha/admin",
   push: "https://console.firebase.google.com/",
@@ -190,15 +191,15 @@ export function ConfigItem({ ctx }: { ctx: SetupCtx }) {
 
 // ---------- 2–5. Checks with nothing to type in ----------
 
-export function CheckItem({ id, ctx }: { id: "firestore" | "storage" | "signIn" | "functions"; ctx: SetupCtx }) {
+export function CheckItem({ id, ctx }: { id: "firestore" | "storage" | "storageFirebase" | "signIn" | "functions"; ctx: SetupCtx }) {
   const { t } = useTranslation();
-  const bucket = ctx.setup.configInUse().config.storageBucket;
   const host = typeof window === "undefined" ? "" : window.location.hostname;
   return (
     <Shell id={id} ctx={ctx}>
       <ul className="setup-facts">
         {id === "firestore" && <><li>{t("setup.firestore.name")}</li><li>{t("setup.firestore.region")}</li></>}
-        {id === "storage" && <><li>{t("setup.storage.bucket", { bucket: bucket || "—" })}</li><li>us-central1</li></>}
+        {id === "storage" && <><li>{t("setup.storage.fact1")}</li><li>{t("setup.storage.fact2")}</li></>}
+        {id === "storageFirebase" && <li>{t("setup.storageFirebase.fact")}</li>}
         {id === "functions" && <li>{t("setup.functions.region")}</li>}
         {id === "signIn" && (
           <>
@@ -208,14 +209,14 @@ export function CheckItem({ id, ctx }: { id: "firestore" | "storage" | "signIn" 
           </>
         )}
       </ul>
-      <TestRow id={id} ctx={ctx} />
+      {INTEGRATIONS[id].available && <TestRow id={id} ctx={ctx} />}
     </Shell>
   );
 }
 
 // ---------- 6–8, 10, 11: saved settings ----------
 
-export function StoredItem({ id, ctx }: { id: "appCheck" | "push" | "email" | "maps" | "whatsapp"; ctx: SetupCtx }) {
+export function StoredItem({ id, ctx }: { id: "appCheck" | "push" | "email" | "maps" | "whatsapp" | "storageR2" | "storageCloudinary"; ctx: SetupCtx }) {
   const { t } = useTranslation();
   const toast = useToast();
   const def = INTEGRATIONS[id];

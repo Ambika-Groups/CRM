@@ -21,6 +21,7 @@ import { loadSample, removeSample, sampleStatus } from "./sample";
 import {
   appCheckEnforced, clearIntegration, ReauthRequired, recordBrowserTest, recordOutcome, requireSuperUser, rotateWebsiteKey, saveIntegration, serverChecks, testIntegration,
 } from "./setup";
+import { filesConfig, filesPresign, isStorageTest, testStorage } from "./storage";
 
 /** What a verified sign-in token tells us. */
 export interface TokenInfo { uid: string; auth_time?: number; email?: string; email_verified?: boolean; name?: string }
@@ -84,8 +85,10 @@ export const ACTIONS: Record<string, Action> = {
   // ---------- Setup & integrations (D-48, D-49) ----------
   setupSave: (who, data, { db, now }) => saveIntegration(db, who, data as never, now),
   async setupClear(who, data, { db, now }) { await clearIntegration(db, who, data.integration, now); return { ok: true }; },
-  /** Server-run Tests (email, maps, website link). */
-  setupTest: (who, data, { db, origin, now }) => testIntegration(db, who, data as never, { endpoint: `${origin}${ENQUIRY_PATH}`, superUserEmail: who.email, now }),
+  /** Server-run Tests (email, maps, website link; and the storage providers, which storage.ts tests). */
+  setupTest: (who, data, { db, origin, now }) => (isStorageTest(data.integration)
+    ? testStorage(db, who, data, { now })
+    : testIntegration(db, who, data as never, { endpoint: `${origin}${ENQUIRY_PATH}`, superUserEmail: who.email, now })),
   setupRotateWebsiteKey: (who, _data, { db, now }) => rotateWebsiteKey(db, who, now),
   /** Browser-run Tests report their result here. */
   async setupRecordTest(who, data, { db, now }) { await recordBrowserTest(db, who, data as never, now); return { ok: true }; },
@@ -135,6 +138,12 @@ export const ACTIONS: Record<string, Action> = {
     await requireSuperUser(db, who);
     return cleanUp(db, now);
   },
+
+  // ---------- files and photos (the storage adapter) ----------
+  /** Which storage provider is in use, for a signed-in browser. Never a key. */
+  filesConfig: (who, _data, { db, now }) => filesConfig(db, who, now),
+  /** Cloudflare R2: a signed address to upload ("put") or open ("get") a file, or remove it ("delete"). Checks the caller's role. */
+  filesPresign: (who, data, { db, now }) => filesPresign(db, who, data, { now }),
 };
 
 /** The website's enquiry address on this host (contract v3). */

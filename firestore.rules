@@ -1007,6 +1007,84 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ================= files and photos (the storage adapter: D-51, D-22) =================
+    // files/{id}: what lists need (name, size, kind, project, a small preview). file_blobs/{id}: the bytes of a file kept
+    // inside the database (at most 700,000 bytes, under the 1 MiB document limit). Both are written by the signed-in
+    // browser in one batch. Mirrors core/files.ts: canAttachFile, canReadFile, canDeleteFile.
+    function fileDoc(id) { return /databases/$(database)/documents/files/$(id); }
+    function fileBlobDoc(id) { return /databases/$(database)/documents/file_blobs/$(id); }
+    function fileMimes(kind) {
+      return kind in ['bill', 'id_proof', 'document']
+        ? ['image/jpeg', 'image/webp', 'image/png', 'application/pdf']
+        : ['image/jpeg', 'image/webp', 'image/png'];
+    }
+    // Finance: everything. ID proofs and signatures: nobody else. CA: bills. PM: assigned projects.
+    // Supervisor: assigned projects, and of bills only their own. Viewer: nothing.
+    function fileReadable(d) {
+      return isFinance()
+        || (d.kind in ['bill', 'photo', 'document'] && (
+              (hasRole(['ca']) && d.kind == 'bill')
+              || (isPm() && assigned(d.get('projectId', null)))
+              || (isSupervisor() && assigned(d.get('projectId', null)) && (d.kind != 'bill' || d.createdBy == uid()))
+           ));
+    }
+    function fileAttachable(d) {
+      return d.kind in ['bill', 'photo', 'id_proof', 'document', 'signature'] && (
+        isFinance()
+        || (d.kind in ['bill', 'photo', 'document'] && d.get('projectId', null) is string && siteRoleOn(d.projectId))
+      );
+    }
+    // The person who attached it, for 24 hours; after that only the owner or the accountant.
+    function fileDeletable(d) {
+      return isFinance()
+        || (d.createdBy == uid() && fileReadable(d) && request.time < d.createdAt + duration.value(24, 'h'));
+    }
+
+    match /files/{id} {
+      allow read: if fileReadable(resource.data);
+      allow create: if fileAttachable(data())
+        && id.matches('^[A-Za-z0-9_-]{8,40}$')
+        && data().keys().hasOnly(['name', 'mime', 'sizeBytes', 'path', 'thumb', 'kind', 'provider', 'projectId', 'owner', 'width', 'height', 'createdBy', 'createdAt'])
+        && data().keys().hasAll(['name', 'mime', 'sizeBytes', 'path', 'kind', 'provider', 'projectId', 'createdBy', 'createdAt'])
+        && data().createdBy == uid() && data().createdAt == request.time
+        && data().name is string && data().name.size() > 0 && data().name.size() <= 120
+        && data().mime in fileMimes(data().kind)
+        && data().sizeBytes is int && data().sizeBytes > 0
+        && (data().projectId == null || data().projectId is string)
+        && data().get('thumb', '') is string && data().get('thumb', '').size() <= 20000
+        && (
+          // Kept in the database: the bytes arrive in the same batch and must be exactly the size stated.
+          (data().provider == 'inline' && data().path == 'inline/' + id && data().sizeBytes <= 700000
+            && existsAfter(fileBlobDoc(id)) && getAfter(fileBlobDoc(id)).data.data.size() == data().sizeBytes)
+          || (data().provider == 'r2' && data().sizeBytes <= 10485760
+            && data().path.matches('^r2/files/[a-z_]+/' + id + '[.][a-z]+$'))
+          // Cloudinary addresses open for anyone who has them: never ID proofs or signatures.
+          || (data().provider == 'cloudinary' && data().sizeBytes <= 10485760
+            && !(data().kind in ['id_proof', 'signature'])
+            && data().path.matches('^cloudinary/[A-Za-z0-9_./-]+$'))
+        );
+      allow update: if false;
+      allow delete: if fileDeletable(resource.data)
+        && (resource.data.provider != 'inline' || !existsAfter(fileBlobDoc(id)));
+    }
+
+    match /file_blobs/{id} {
+      allow read: if fileReadable(resource.data);
+      allow create: if fileAttachable(data())
+        && data().keys().hasOnly(['data', 'kind', 'projectId', 'createdBy', 'createdAt'])
+        && data().keys().hasAll(['data', 'kind', 'projectId', 'createdBy', 'createdAt'])
+        && data().createdBy == uid() && data().createdAt == request.time
+        && data().data is bytes && data().data.size() > 0 && data().data.size() <= 700000
+        // Always written together with a NEW files/{id}, which must say the same kind, project and person.
+        && !exists(fileDoc(id)) && existsAfter(fileDoc(id))
+        && getAfter(fileDoc(id)).data.kind == data().kind
+        && getAfter(fileDoc(id)).data.projectId == data().projectId
+        && getAfter(fileDoc(id)).data.createdBy == uid()
+        && getAfter(fileDoc(id)).data.provider == 'inline';
+      allow update: if false;
+      allow delete: if fileDeletable(resource.data) && !existsAfter(fileDoc(id));
+    }
+
     // ================= accounting =================
 
     match /account_transactions/{id} {

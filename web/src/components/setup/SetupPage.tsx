@@ -60,6 +60,9 @@ export function SetupPage() {
             <ConfigItem ctx={ctx} />
             <CheckItem id="firestore" ctx={ctx} />
             <CheckItem id="storage" ctx={ctx} />
+            <StoredItem id="storageR2" ctx={ctx} />
+            <StoredItem id="storageCloudinary" ctx={ctx} />
+            <CheckItem id="storageFirebase" ctx={ctx} />
             <CheckItem id="signIn" ctx={ctx} />
             <CheckItem id="functions" ctx={ctx} />
             <StoredItem id="appCheck" ctx={ctx} />

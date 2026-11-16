@@ -923,9 +923,33 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "files",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "provider",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sizeBytes",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [
+    {
+      "collectionGroup": "files",
+      "fieldPath": "thumb",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "file_blobs",
+      "fieldPath": "data",
+      "indexes": []
+    },
     {
       "collectionGroup": "audit_log",
       "fieldPath": "oldValue",

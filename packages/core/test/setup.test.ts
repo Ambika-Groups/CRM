@@ -58,7 +58,7 @@ describe("super user (D-48)", () => {
 
 describe("integrations (D-49)", () => {
   it("SU-10 every item is defined, WhatsApp is unavailable, and the secrets are write-only fields", () => {
-    expect(INTEGRATION_IDS).toHaveLength(11);
+    expect(INTEGRATION_IDS).toHaveLength(14); // 11 + Cloudflare R2, Cloudinary and the Cloud Storage placeholder (test/files.test.ts FL-45)
     expect(INTEGRATIONS.whatsapp.available).toBe(false);
     expect(INTEGRATIONS.whatsapp.counts).toBe(false);
     expect(INTEGRATIONS.email.fields.filter((f) => f.secret).map((f) => f.key)).toEqual(["apiKey"]);

@@ -6,7 +6,7 @@
  */
 
 export const INTEGRATION_IDS = [
-  "firebaseConfig", "firestore", "storage", "signIn", "functions", "appCheck", "push", "email", "websiteLink", "maps", "whatsapp",
+  "firebaseConfig", "firestore", "storage", "storageR2", "storageCloudinary", "storageFirebase", "signIn", "functions", "appCheck", "push", "email", "websiteLink", "maps", "whatsapp",
 ] as const;
 export type IntegrationId = (typeof INTEGRATION_IDS)[number];
 
@@ -60,7 +60,28 @@ export const FIREBASE_CONFIG_FIELDS: IntegrationField[] = [
 export const INTEGRATIONS: Record<IntegrationId, IntegrationDef> = {
   firebaseConfig: { id: "firebaseConfig", kind: "device", available: true, counts: true, testsIn: "browser", fields: FIREBASE_CONFIG_FIELDS },
   firestore: { id: "firestore", kind: "check", available: true, counts: true, testsIn: "browser", fields: [] },
+  // File storage (D-51). "storage" is the built-in store: compressed pictures inside the database, nothing to set up.
   storage: { id: "storage", kind: "check", available: true, counts: true, testsIn: "browser", fields: [] },
+  // Optional providers: they do not hold up "N of M verified". Used for new files once switched on and Test passes.
+  storageR2: {
+    id: "storageR2", kind: "stored", available: true, counts: false, testsIn: "server",
+    fields: [
+      { key: "accountId", secret: false, required: true, pattern: "^[0-9a-f]{32}$", patternMessage: "The account ID is 32 letters and digits (0-9 and a-f). Copy it from the R2 overview page in Cloudflare." },
+      { key: "accessKeyId", secret: false, required: true, pattern: "^[A-Za-z0-9]{20,128}$", patternMessage: "The Access Key ID is letters and digits only. Copy it from the R2 API token." },
+      { key: "secretAccessKey", secret: true, required: true, pattern: "^[A-Za-z0-9+/=_-]{32,128}$", patternMessage: "Paste the whole Secret Access Key. It is shown once, when the R2 API token is made." },
+      { key: "bucket", secret: false, required: true, pattern: "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$", patternMessage: "A bucket name is 3 to 63 lowercase letters, digits and dashes, like ambika-crm-files." },
+      { key: "publicBaseUrl", secret: false, required: false, pattern: "^https://[A-Za-z0-9.-]+(/[A-Za-z0-9._~/-]*)?$", patternMessage: "Enter a web address that starts with https://, like https://files.yourcompany.in. Leave it empty to keep the bucket private." },
+    ],
+  },
+  storageCloudinary: {
+    id: "storageCloudinary", kind: "stored", available: true, counts: false, testsIn: "server",
+    fields: [
+      { key: "cloudName", secret: false, required: true, pattern: "^[a-z0-9][a-z0-9_-]{1,62}$", patternMessage: "The cloud name is lowercase letters, digits and dashes. Copy it from the Cloudinary dashboard." },
+      { key: "uploadPreset", secret: false, required: true, pattern: "^[A-Za-z0-9_-]{1,100}$", patternMessage: "The preset name is letters, digits, dashes and underscores. Copy it from Settings > Upload > Upload presets." },
+    ],
+  },
+  // Firebase Cloud Storage needs the paid plan (D-51): shown, switched off.
+  storageFirebase: { id: "storageFirebase", kind: "check", available: false, counts: false, testsIn: "browser", fields: [] },
   signIn: { id: "signIn", kind: "check", available: true, counts: true, testsIn: "browser", fields: [] },
   functions: { id: "functions", kind: "check", available: true, counts: true, testsIn: "browser", fields: [] },
   appCheck: {

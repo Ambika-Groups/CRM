@@ -143,7 +143,7 @@ describe("the HTTP handler (api.ts)", () => {
   it("API-10 ping answers with where the server part runs; every action the page calls exists", async () => {
     const r = await handleApi(request({ body: JSON.stringify({ name: "ping" }) }), deps({ now: () => new Date("2026-11-16T10:00:00.000Z") }));
     expect(resultOf(r)).toEqual({ ok: true, at: "2026-11-16T10:00:00.000Z", region: "test" });
-    expect(Object.keys(ACTIONS).sort()).toEqual(["cleanUp", "command", "connectionTest", "ping", "sampleData", "setupClear", "setupRecordTest", "setupRotateWebsiteKey", "setupSave", "setupTest", "setupTestPush"]);
+    expect(Object.keys(ACTIONS).sort()).toEqual(["cleanUp", "command", "connectionTest", "filesConfig", "filesPresign", "ping", "sampleData", "setupClear", "setupRecordTest", "setupRotateWebsiteKey", "setupSave", "setupTest", "setupTestPush"]);
   });
 
   it("API-11 Setup actions are for the super user only (checked on the users document)", async () => {

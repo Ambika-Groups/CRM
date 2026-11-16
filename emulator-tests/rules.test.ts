@@ -6,7 +6,7 @@
 //     IDs T-xxx follow docs/rules-test-matrix.md.
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { canRead, OWNER_EMAIL, seedDemo, type Doc, type Role, type User } from "@ag/core";
-import { collection, deleteDoc, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, updateDoc, writeBatch } from "firebase/firestore";
+import { Bytes, collection, deleteDoc, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch } from "firebase/firestore";
 import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -278,5 +278,120 @@ describe("the first owner, created by the rules alone (D-52)", () => {
     await clean();
     await assertFails(attempt(asUid(NEW, tok()), ownerDoc(), marker(), "uSomeoneElse"));
     await assertFails(attempt(asUid(NEW, tok()), ownerDoc(), marker({ uid: "uSomeoneElse" })));
+  });
+});
+
+// ---------- files and photos (group A, the storage adapter; core/files.ts) ----------
+describe("files and file_blobs (D-22, D-51; core canAttachFile, canReadFile, canDeleteFile)", () => {
+  const G = "projShivNagar"; // uPm and uSupShivNagar are assigned to it; neither is on projGomti
+  type F = { kind: string; projectId: string | null; createdBy: string };
+  const SEEDED: Record<string, F> = {
+    fRulesBill01: { kind: "bill", projectId: G, createdBy: "uSupShivNagar" },
+    fRulesBill02: { kind: "bill", projectId: G, createdBy: "uPm" },
+    fRulesBill03: { kind: "bill", projectId: null, createdBy: "uAccountant" },
+    fRulesPhoto1: { kind: "photo", projectId: G, createdBy: "uPm" },
+    fRulesPhoto2: { kind: "photo", projectId: "projGomti", createdBy: "uOwner" },
+    fRulesDoc001: { kind: "document", projectId: null, createdBy: "uOwner" },
+    fRulesIdPrf1: { kind: "id_proof", projectId: null, createdBy: "uAccountant" },
+    fRulesSign01: { kind: "signature", projectId: G, createdBy: "uOwner" },
+  };
+  const metaOf = (id: string, f: F, over: Record<string, unknown> = {}) => ({ name: `${id}.jpg`, mime: "image/jpeg", sizeBytes: 3, path: `inline/${id}`, provider: "inline", owner: null, ...f, ...over });
+  const blobOf = (f: F, bytes = 3) => ({ data: Bytes.fromUint8Array(new Uint8Array(bytes).fill(7)), ...f });
+
+  beforeAll(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      const old = Timestamp.fromDate(new Date(Date.now() - 48 * 3600_000)); // past the 24-hour remove window
+      // Earlier tests change people (role, switched off): put them back as seeded, so the comparison with core is fair.
+      for (const p of Object.values(PEOPLE)) await setDoc(doc(db, "users", p.uid), JSON.parse(JSON.stringify(users.find((u) => u.id === p.uid))));
+      for (const [id, f] of Object.entries(SEEDED)) {
+        await setDoc(doc(db, "files", id), { ...metaOf(id, f), createdAt: old });
+        await setDoc(doc(db, "file_blobs", id), { ...blobOf(f), createdAt: old });
+      }
+    });
+  });
+
+  /** Writes a file the way the app does: files/{id} and file_blobs/{id} in one batch, stamped with the server time. */
+  const put = (who: string, id: string, f: Omit<F, "createdBy">, o: { meta?: Record<string, unknown>; blob?: Record<string, unknown> | null; bytes?: number } = {}) => {
+    const db = as(who), uid = PEOPLE[who]!.uid, n = o.bytes ?? 3;
+    const b = writeBatch(db);
+    b.set(doc(db, "files", id), { ...metaOf(id, { ...f, createdBy: uid }, { sizeBytes: n }), createdAt: serverTimestamp(), ...o.meta });
+    if (o.blob !== null) b.set(doc(db, "file_blobs", id), { ...blobOf({ ...f, createdBy: uid }, n), createdAt: serverTimestamp(), ...o.blob });
+    return b.commit();
+  };
+  const del = (who: string, id: string) => { const db = as(who); const b = writeBatch(db); b.delete(doc(db, "files", id)); b.delete(doc(db, "file_blobs", id)); return b.commit(); };
+
+  for (const who of Object.keys(PEOPLE)) {
+    it(`T-F00 parity with core canRead: ${who}`, async () => {
+      const db = as(who), p = PEOPLE[who]!;
+      const ctx = { role: p.role, uid: p.uid, assignedProjectIds: users.find((u) => u.id === p.uid)?.projectIds ?? [] };
+      const mismatches: string[] = [];
+      for (const [id, f] of Object.entries(SEEDED)) for (const col of ["files", "file_blobs"]) {
+        const expected = canRead(col, { id, ...f }, ctx);
+        const actual = await readOk(db, `${col}/${id}`);
+        if (expected !== actual) mismatches.push(`${col}/${id}: core ${expected}, rules ${actual}`);
+      }
+      expect(mismatches).toEqual([]);
+    });
+  }
+
+  it("T-F01 a supervisor attaches a photo and a bill on their own project; finance attaches an ID proof with no project", async () => {
+    await assertSucceeds(put("supervisor", "fRulesNew001", { kind: "photo", projectId: G }));
+    await assertSucceeds(put("supervisor", "fRulesNew002", { kind: "bill", projectId: G }));
+    await assertSucceeds(put("accountant", "fRulesNew003", { kind: "id_proof", projectId: null }));
+    await assertSucceeds(put("owner", "fRulesNew004", { kind: "document", projectId: null }, { meta: { mime: "application/pdf", thumb: "data:image/jpeg;base64,AAAA", width: 10, height: 10 } }));
+  });
+
+  it("T-F02 attaching is refused: another project, no project, an ID proof or signature from a site role, the viewer, the CA, someone else's name", async () => {
+    await assertFails(put("supervisor", "fRulesBad001", { kind: "photo", projectId: "projGomti" }));
+    await assertFails(put("pm", "fRulesBad002", { kind: "photo", projectId: null }));
+    await assertFails(put("pm", "fRulesBad003", { kind: "id_proof", projectId: G }));
+    await assertFails(put("supervisor", "fRulesBad004", { kind: "signature", projectId: G }));
+    await assertFails(put("viewer", "fRulesBad005", { kind: "photo", projectId: G }));
+    await assertFails(put("ca", "fRulesBad006", { kind: "bill", projectId: null }));
+    await assertFails(put("supervisor", "fRulesBad007", { kind: "photo", projectId: G }, { meta: { createdBy: "uOwner" }, blob: { createdBy: "uOwner" } }));
+    await assertFails(put("owner", "fRulesBad008", { kind: "video", projectId: null }));
+  });
+
+  it("T-F03 the size caps and shapes are enforced by the rules", async () => {
+    await assertSucceeds(put("owner", "fRulesCap001", { kind: "photo", projectId: null }, { bytes: 700_000 }));
+    await assertFails(put("owner", "fRulesCap002", { kind: "photo", projectId: null }, { bytes: 700_001 }));
+    await assertFails(put("owner", "fRulesCap003", { kind: "photo", projectId: null }, { meta: { sizeBytes: 2 } })); // says 2, holds 3
+    await assertFails(put("owner", "fRulesCap004", { kind: "photo", projectId: null }, { blob: null })); // inline with no bytes
+    await assertFails(put("owner", "fRulesCap005", { kind: "photo", projectId: null }, { meta: { mime: "text/html" } }));
+    await assertFails(put("owner", "fRulesCap006", { kind: "photo", projectId: null }, { meta: { mime: "application/pdf" } })); // no PDFs as photos
+    await assertFails(put("owner", "fRulesCap007", { kind: "photo", projectId: null }, { meta: { thumb: `data:image/jpeg;base64,${"A".repeat(20_000)}` } }));
+    await assertFails(put("owner", "fRulesCap008", { kind: "photo", projectId: null }, { meta: { extra: 1 } }));
+    await assertFails(put("owner", "fRulesCap009", { kind: "photo", projectId: null }, { meta: { path: "inline/fRulesBill01" } }));
+    await assertFails(put("owner", "fRulesCap010", { kind: "photo", projectId: null }, { meta: { createdAt: Timestamp.fromDate(new Date(2020, 0, 1)) } }));
+    await assertFails(put("owner", "short", { kind: "photo", projectId: null }));
+    // Bytes on their own, or for a file that already exists, are refused.
+    await assertFails(setDoc(doc(as("owner"), "file_blobs", "fRulesCap011"), { ...blobOf({ kind: "photo", projectId: null, createdBy: "uOwner" }), createdAt: serverTimestamp() }));
+    await assertFails(setDoc(doc(as("owner"), "file_blobs", "fRulesDoc001"), { ...blobOf({ kind: "document", projectId: null, createdBy: "uOwner" }), createdAt: serverTimestamp() }));
+  });
+
+  it("T-F04 a file is never changed", async () => {
+    await assertFails(updateDoc(doc(as("owner"), "files", "fRulesDoc001"), { name: "renamed.jpg" }));
+    await assertFails(updateDoc(doc(as("owner"), "file_blobs", "fRulesDoc001"), { kind: "photo" }));
+    await assertFails(updateDoc(doc(as("pm"), "files", "fRulesPhoto1"), { projectId: "projGomti" }));
+  });
+
+  it("T-F05 removing: the person who attached it within 24 hours, then only finance; both documents go together", async () => {
+    await assertSucceeds(put("supervisor", "fRulesDel001", { kind: "photo", projectId: G }));
+    await assertFails(del("pm", "fRulesDel001")); // not theirs
+    await assertFails(deleteDoc(doc(as("supervisor"), "files", "fRulesDel001"))); // would leave the bytes behind
+    await assertSucceeds(del("supervisor", "fRulesDel001"));
+    await assertFails(del("pm", "fRulesPhoto1")); // theirs, but attached 48 hours ago
+    await assertFails(del("ca", "fRulesBill03"));
+    await assertSucceeds(del("accountant", "fRulesPhoto1"));
+  });
+
+  it("T-F06 a file kept in R2 or Cloudinary has no bytes here; ID proofs never go to Cloudinary", async () => {
+    const meta = (uid: string, id: string, over: Record<string, unknown>) => ({ ...metaOf(id, { kind: "bill", projectId: G, createdBy: uid }, { sizeBytes: 5_000_000 }), createdAt: serverTimestamp(), ...over });
+    await assertSucceeds(setDoc(doc(as("supervisor"), "files", "fRulesR2x01"), meta("uSupShivNagar", "fRulesR2x01", { provider: "r2", path: "r2/files/bill/fRulesR2x01.jpg" })));
+    await assertFails(setDoc(doc(as("supervisor"), "files", "fRulesR2x02"), meta("uSupShivNagar", "fRulesR2x02", { provider: "r2", path: "r2/files/bill/fRulesBill01.jpg" }))); // another file's object
+    await assertFails(setDoc(doc(as("supervisor"), "files", "fRulesR2x03"), meta("uSupShivNagar", "fRulesR2x03", { provider: "r2", path: "r2/files/bill/fRulesR2x03.jpg", sizeBytes: 10_485_761 })));
+    await assertSucceeds(setDoc(doc(as("owner"), "files", "fRulesCld01"), meta("uOwner", "fRulesCld01", { provider: "cloudinary", path: "cloudinary/ag-crm/bill/fRulesCld01" })));
+    await assertFails(setDoc(doc(as("owner"), "files", "fRulesCld02"), meta("uOwner", "fRulesCld02", { provider: "cloudinary", path: "cloudinary/ag-crm/id_proof/fRulesCld02", kind: "id_proof", projectId: null })));
   });
 });

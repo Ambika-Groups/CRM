@@ -16,6 +16,9 @@ const SKIP = new Set(["users", "settings", "expense_categories", "meta", "audit_
 /** Where the user's own records would be: if any exists besides the sample, the project is not empty. */
 const OWN = ["projects", "clients", "workers", "expenses", "invoices", "attendance", "worker_payments", "vendor_bills", "accounts"];
 
+/** How many sample records are removed at the same time. */
+const REMOVE_AT_ONCE = 50;
+
 export interface SampleStatus {
   loaded: boolean;
   state?: "loading" | "loaded";
@@ -82,16 +85,19 @@ export async function removeSample(db: Firestore, caller: Caller, now: () => Dat
   if (await hasOwnRecords(db)) {
     throw new CommandError("You have added your own records since the sample was loaded. To keep your totals true, sample data can only be removed while nothing else has been added.");
   }
-  const writer = db.bulkWriter();
   let failed = 0;
   const removed: Record<string, number> = {};
   const { store } = await seedDemo(todayIST());
   const tops = [...new Set(Object.keys(store.snapshot()).map((c) => c.split("/")[0]!))].filter((t) => !SKIP.has(t));
   for (const top of tops) {
     const snap = await db.collection(top).where("isSample", "==", true).select().get();
-    for (const d of snap.docs) { db.recursiveDelete(d.ref, writer).catch(() => { failed++; }); removed[top] = (removed[top] ?? 0) + 1; }
+    removed[top] = snap.size;
+    // Each record goes with everything under it. A limited number at a time, each one finished before we answer
+    // (they used to be left running on a shared writer and failed after the answer had gone).
+    for (let i = 0; i < snap.docs.length; i += REMOVE_AT_ONCE) {
+      await Promise.all(snap.docs.slice(i, i + REMOVE_AT_ONCE).map((d) => db.recursiveDelete(d.ref).catch(() => { failed++; })));
+    }
   }
-  await writer.close();
   if (failed) throw new CommandError(`${failed} sample records could not be removed. Try Remove sample data again.`);
   await marker(db).delete();
   await audit(db, caller, "remove", removed, now().toISOString());

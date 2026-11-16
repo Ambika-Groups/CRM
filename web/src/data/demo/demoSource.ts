@@ -9,6 +9,7 @@ import {
   type CommandArgs, type CommandName, type CommandResult, type Doc, type Page, type QuerySpec, type User, type Where, Persister } from "@ag/core";
 import { openDB, type IDBPDatabase } from "idb";
 import { DemoSetup } from "./demoSetup";
+import { DemoFiles } from "../files/demoFiles";
 import { isSmallCollection, type DataSource, type Session } from "../types";
 
 const DB_NAME = "ag-crm-demo";
@@ -41,6 +42,8 @@ export class DemoSource implements DataSource {
   private uid: string | null = null;
   // Write-behind saving; every command awaits flush() so a save is durable before the UI moves on (QA N1).
   private persister = new Persister(() => this.persistNow(), 400);
+  /** Photos and documents, kept in the demo store so they survive a reload like everything else. */
+  readonly files = new DemoFiles(this.store, () => this.ctx(), () => this.persister.flush());
 
   async init(): Promise<void> {
     try {

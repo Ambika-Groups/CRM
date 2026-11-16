@@ -80,7 +80,7 @@ add("/", "perf-4g-supervisor", 390, { throttle: "4g", keepThrottle: true, noReve
 
 // ---------- Settings > Setup & integrations (D-48, D-49): demo mode, a labelled simulation ----------
 const SETUP = "/settings/setup/";
-const ITEMS = ["firebaseConfig", "firestore", "storage", "signIn", "functions", "appCheck", "push", "email", "websiteLink", "maps", "whatsapp", "company"];
+const ITEMS = ["firebaseConfig", "firestore", "storage", "storageR2", "storageCloudinary", "storageFirebase", "signIn", "functions", "appCheck", "push", "email", "websiteLink", "maps", "whatsapp", "company"];
 const summaryText = `document.querySelector('[data-setup-summary] .setup-count').textContent.trim()`;
 
 // Role gating: only the super user opens it; everyone else sees "You don't have access" and no item.
@@ -96,21 +96,21 @@ add("/", "setup-demo-link", 1280, { shot: false,
   action: act(`await until(()=>document.querySelector('[data-connect-link]'),10000);document.querySelector('[data-connect-link]').click();await until(()=>location.pathname==='/settings/setup/',10000);`),
   expect: exp(`await ready();return location.pathname==='/settings/setup/'||location.pathname;`) });
 
-// A clean start, then all twelve items and the summary row.
+// A clean start, then all fifteen items and the summary row.
 add(SETUP, "setup-fresh", 1280, { shot: false, reload: true,
   action: act(`await until(()=>document.querySelector('[data-setup-summary]'),10000);localStorage.removeItem('ag-demo-setup');localStorage.removeItem('ag-firebase-config');`),
-  expect: exp(`await ready();const n=document.querySelectorAll('[data-setup-item]').length;const t=${summaryText};return (n===12&&t==='0 of 10 verified'&&!!document.querySelector('[data-simulation]'))||JSON.stringify({n,t});`) });
+  expect: exp(`await ready();const n=document.querySelectorAll('[data-setup-item]').length;const t=${summaryText};return (n===15&&t==='0 of 10 verified'&&!!document.querySelector('[data-simulation]'))||JSON.stringify({n,t});`) });
 for (const w of [390, 1280]) for (const theme of ["light", "dark"]) {
-  add(SETUP, "setup-owner", w, { theme, expect: exp(`await ready();return document.querySelectorAll('[data-setup-item]').length===12||'not 12 items';`) });
+  add(SETUP, "setup-owner", w, { theme, expect: exp(`await ready();return document.querySelectorAll('[data-setup-item]').length===15||'not 15 items';`) });
 }
-add(SETUP, "setup-owner", 390, { lang: "hi", state: "hi", expect: exp(`await ready();await until(()=>document.querySelector('h1')?.textContent.includes('सेटअप'),10000);return (document.querySelector('h1').textContent.includes('सेटअप')&&document.querySelectorAll('[data-setup-item]').length===12)||main().slice(0,120);`) });
+add(SETUP, "setup-owner", 390, { lang: "hi", state: "hi", expect: exp(`await ready();await until(()=>document.querySelector('h1')?.textContent.includes('सेटअप'),10000);return (document.querySelector('h1').textContent.includes('सेटअप')&&document.querySelectorAll('[data-setup-item]').length===15)||main().slice(0,120);`) });
 
 // Every item that can be tested has its own Test button, and every Test gives Pass or Fail in plain words.
 add(SETUP, "setup-test-all", 1280, { shot: false,
   action: act(`await ready();for(const b of [...document.querySelectorAll('[data-test]')]){b.click();await until(()=>document.querySelector('[data-test-result='+b.dataset.test+'] p'),8000);await sleep(150);}`),
   expect: exp(`const ids=[...document.querySelectorAll('[data-test]')].map(b=>b.dataset.test);const ok=Object.fromEntries(ids.map(i=>[i,document.querySelector('[data-test-result='+i+']').dataset.ok]));
 const passed=ids.filter(i=>ok[i]==='true').sort().join();const text=document.querySelector('[data-test-result=firestore]').innerText;
-return (ids.length===10&&passed==='firestore,functions,signIn,storage'&&${summaryText}==='4 of 10 verified'&&/Simulation/.test(text)&&!document.querySelector('[data-test=whatsapp]'))||JSON.stringify({ids,ok,s:${summaryText}});`) });
+return (ids.length===12&&passed==='firestore,functions,signIn,storage'&&${summaryText}==='4 of 10 verified'&&/Simulation/.test(text)&&!document.querySelector('[data-test=whatsapp]'))||JSON.stringify({ids,ok,s:${summaryText}});`) });
 
 // A wrong value is named in plain words and nothing is saved.
 add(SETUP, "setup-invalid", 1280, { shot: false,

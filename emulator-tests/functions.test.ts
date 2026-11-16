@@ -4,7 +4,7 @@
 import { seedDemo } from "@ag/core";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { initializeFirestore, Timestamp } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { handleApi, type ApiDeps } from "../functions/src/api";
 import { executeCommand } from "../functions/src/command";
@@ -17,8 +17,8 @@ import {
 const PROJECT = "demo-ambika";
 process.env.GCLOUD_PROJECT = PROJECT;
 const app = initializeApp({ projectId: PROJECT });
-// REST, not gRPC: the same transport the server part uses on Netlify (functions/src/admin.ts), so these tests prove it.
-const db = initializeFirestore(app, { preferRest: true });
+// The same transport the server part uses on Netlify (functions/src/admin.ts): the Admin SDK's default.
+const db = getFirestore(app);
 db.settings({ ignoreUndefinedProperties: true });
 const auth = getAuth(app);
 

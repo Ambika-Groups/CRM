@@ -1,0 +1,34 @@
+/* Files and photos: the attach control, the previews and the full-size viewer (group A, the storage adapter). */
+.file-attach { gap: var(--space-2); min-width: 0; }
+.file-attach-label { font-weight: var(--weight-label); }
+.file-attach-actions { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; }
+.file-attach-status { min-height: 0; font-size: var(--text-small); line-height: var(--leading-small); }
+.file-attach-status:empty { display: none; }
+.file-attach [role="alert"] { display: grid; gap: var(--space-1); }
+
+.file-thumbs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+.file-thumb { display: flex; gap: var(--space-3); align-items: center; min-width: 0; padding: var(--space-2); background: var(--color-surface);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-sm); }
+.file-thumb-open { flex: 0 0 auto; width: 72px; height: 72px; padding: 0; border: 1px solid var(--color-divider); border-radius: var(--radius-badge);
+  background: var(--color-page); overflow: hidden; cursor: pointer; display: grid; place-items: center; color: var(--color-text-secondary); }
+.file-thumb-open img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.file-thumb-open:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.file-thumb-text { display: grid; gap: 2px; min-width: 0; justify-items: start; }
+.file-thumb-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--weight-label); }
+.file-thumb-remove { padding-left: 0; padding-right: var(--space-2); gap: var(--space-1); min-height: 40px; }
+.file-pdf-tile { display: grid; justify-items: center; gap: 2px; font-size: var(--text-caption); font-weight: var(--weight-label); color: var(--color-text-secondary); }
+.file-pdf-tile.large { padding: var(--space-8) var(--space-4); font-size: var(--text-small); gap: var(--space-2); }
+
+.dialog.file-viewer { max-width: 880px; max-height: calc(100dvh - 2 * var(--space-4)); display: flex; flex-direction: column; }
+.file-viewer-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dialog .file-viewer-meta { margin-top: var(--space-1); }
+.file-viewer-body { flex: 1 1 auto; min-height: 120px; margin-top: var(--space-4); display: grid; place-items: center; overflow: auto;
+  background: var(--color-page); border: 1px solid var(--color-divider); border-radius: var(--radius-badge); }
+.file-viewer-body p { margin: var(--space-4); }
+.file-viewer-img { max-width: 100%; max-height: 62dvh; width: auto; height: auto; display: block; }
+.file-viewer .dialog-actions { margin-top: var(--space-4); }
+@media (max-width: 599px) { .dialog.file-viewer { max-height: 92dvh; } .file-viewer-img { max-height: 52dvh; } }
+
+.files-check { display: grid; gap: var(--space-4); }
+.files-check .card { display: grid; gap: var(--space-3); }
+.files-check h2 { font-size: var(--text-title-s); line-height: var(--leading-title-s); margin: 0; }

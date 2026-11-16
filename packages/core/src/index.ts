@@ -30,4 +30,5 @@ export * from "./serverAnswer";
 export * from "./freshness";
 // <core:exports> one line per feature module (lane lead only, append only)
 export * from "./lanea-interfaces";
+export * from "./files";
 // </core:exports>

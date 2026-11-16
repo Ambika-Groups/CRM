@@ -3,6 +3,7 @@
  * the read matrix in docs/data-model.md §12. Security is enforced by firestore.rules in Firebase mode and
  * by `canRead` in demo mode; the UI only hides what a role can't use.
  */
+import { canReadFile } from "./files";
 import type { Role } from "./model";
 
 export const ROLE_LABELS: Record<Role, { en: string; hi: string }> = {
@@ -166,6 +167,10 @@ export function canRead(collection: string, doc: Record<string, unknown>, c: Ctx
       return fin || (r === "pm" && doc.requestedBy === c.uid);
     case "rollups":
       return readsTotals(r) || (r === "pm" && doc.scope === "project" && assigned(doc.projectId));
+    case "files":
+    case "file_blobs":
+      // Photos and documents (core/files.ts): by kind and project; ID proofs and signatures finance only (D-22).
+      return canReadFile(doc, c);
     default:
       // workers/private/* (KYC, pay), project_terms and anything not listed: owner and accountant only.
       return fin;

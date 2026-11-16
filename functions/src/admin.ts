@@ -10,7 +10,7 @@
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getAppCheck } from "firebase-admin/app-check";
 import { getAuth, type Auth } from "firebase-admin/auth";
-import { initializeFirestore, type Firestore } from "firebase-admin/firestore";
+import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import type { ApiDeps } from "./api";
 
@@ -52,8 +52,9 @@ export function runtime(env: Env = process.env): Runtime | null {
   const sa = serviceAccountFromEnv(env);
   if (!sa) return null;
   const app = getApps()[0] ?? initializeApp({ credential: cert(sa), projectId: sa.projectId });
-  // REST instead of gRPC: a much quicker first call after the function has been idle.
-  const db = initializeFirestore(app, { preferRest: true });
+  // The Admin SDK's usual transport (gRPC): the one the emulator tests run on. Its REST option (preferRest) starts quicker
+  // after an idle spell, but it failed those tests and ran out of memory, so it is not used.
+  const db = getFirestore(app);
   db.settings({ ignoreUndefinedProperties: true });
   const auth = getAuth(app);
   cached = {
@@ -65,6 +66,7 @@ export function runtime(env: Env = process.env): Runtime | null {
       await getMessaging(app).send({ token, notification: { title: "Ambika CRM", body: "Push notifications are working." }, webpush: { fcmOptions: { link: "/" } } });
     },
     firestoreRegion: async () => {
+      if (env.FIRESTORE_EMULATOR_HOST) return null; // a local emulator has no region to ask Google about
       const t = await app.options.credential?.getAccessToken();
       if (!t) return null;
       const r = await fetch(`https://firestore.googleapis.com/v1/projects/${sa.projectId}/databases/(default)`, { headers: { Authorization: `Bearer ${t.access_token}` } });

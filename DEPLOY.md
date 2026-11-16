@@ -29,6 +29,7 @@ The project uses Firebase's free plan with no payment method (decision D-51, doc
 
 - **Use GO-LIVE-LOCAL.md first.** It gets you signed in as the owner on your real database with no server and no card.
 - **Do not do** the steps below about the pay-as-you-go plan (step 2), file storage (step 4), phone sign-in, App Check enforcement, and "deploy the functions" (steps 10 and 11): they need a paid plan. Photos will be kept inside the database; the server part will be a free Netlify Function.
+- **File storage:** nothing to set up (photos are made small and kept in the database). Optional: Settings > Setup & integrations > **3a Cloudflare R2** (needs a card on the Cloudflare account; add a CORS rule on the bucket for GET and PUT from the CRM's address) or **3b Cloudinary** (free plan, no card; an Unsigned upload preset). Either is used for new files once its Test passes.
 - **Still valid:** creating the project and database (1 and 3), turning on sign-in (5), the web settings (6), authorized domains (7), and putting the site on Netlify (13, written out below).
 - The one-command wizard (npm run setup) is being reworked for the free plan; until then use the steps.
 
@@ -78,6 +79,8 @@ An alert is an email, not a stop. If one ever arrives, open the console's **Usag
 4. Start in **production mode** (the CRM sends its own rules in step 11).
 
 ## 4. Create file storage (Storage)
+
+**Skip this step on the free plan.** Firebase's own file storage needs the paid plan. On the free plan photos and documents are kept inside the database, with nothing to set up (item 3 on the Setup page, step 14). The lines below are only for a project on the paid plan.
 
 1. Console > **Build** > **Storage** > **Get started**.
 2. Choose **production mode**.
@@ -183,10 +186,14 @@ Optional: use your own address like `crm.yourcompany.in` (Netlify > Domain manag
 
 Sign in on your live site and open **Settings > Setup & integrations**. This page is only for the super user (you). It asks you to sign in again before any change.
 
-Each of the 12 items has its own settings and its own **Test** button, and shows **Passed** or **Failed** in plain words with what to do about it. The row at the top ("7 of 10 verified") counts the ones whose last test passed.
+Each of the 15 items has its own settings and its own **Test** button, and shows **Passed** or **Failed** in plain words with what to do about it. The row at the top ("7 of 10 verified") counts the ones whose last test passed.
 
 1. **Firebase web config**: shows what the site is using. Test checks that the project answers.
-2. **Firestore**, 3. **Storage**, 4. **Sign-in**, 5. **Server functions**: nothing to type; press Test.
+2. **Firestore**, 3. **File storage (built in)**, 4. **Sign-in**, 5. **Server functions**: nothing to type; press Test. The File storage Test keeps a tiny file in the database, reads it back and deletes it.
+   - 3a. **Cloudflare R2** (optional, more space): Cloudflare asks for a payment method (a card) to add R2, even for its free 10 GB a month. Create a bucket and an API token with Object Read & Write; paste the account ID, the Access Key ID, the Secret Access Key and the bucket name; add a CORS rule on the bucket that allows GET and PUT, with the content-type header, from your CRM's address. Test saves, reads and deletes a tiny file.
+   - 3b. **Cloudinary** (optional, free plan, no card): paste the cloud name and the name of an Unsigned upload preset. Test uploads one tiny picture (it stays in your Cloudinary account). ID proofs and signatures are never sent to Cloudinary.
+   - 3c. **Firebase Cloud Storage**: needs the paid plan; switched off.
+   - R2 or Cloudinary is used for new files only when it is turned on and its last Test passed (R2 first). Files already kept stay where they are.
 6. **App Check**: save the reCAPTCHA site key; Test gets a token.
 7. **Push notifications**: paste the web push key from Firebase console > Project settings > **Cloud Messaging** > Web Push certificates > **Generate key pair**. Test asks the browser for permission and sends a real notification.
 8. **Email (Resend)**: at <https://resend.com> create an API key and verify your company domain; paste the key and the from-address. Test sends a real email to you.
@@ -202,7 +209,7 @@ Secret keys are write-only: after you save one, the page shows only the last fou
 On the live site, signed in as the owner:
 
 - [ ] The page opens and asks you to sign in; Google sign-in works and returns you to the CRM.
-- [ ] Settings > Setup & integrations opens, and Test passes for Firestore, Storage, Sign-in and Server functions.
+- [ ] Settings > Setup & integrations opens, and Test passes for Firestore, File storage, Sign-in and Server functions.
 - [ ] Add a client, then a project for that client; reload the page; both are still there.
 - [ ] Settings > Users: add an accountant (email) and a supervisor (phone). Each can sign in (the accountant by "Email me a link", the supervisor by phone code).
 - [ ] As the supervisor on a phone: mark attendance. Turn on aeroplane mode, mark again: it says "waiting to send", and syncs when the internet returns.
@@ -233,7 +240,7 @@ an email, and never hand one to the CA (the CA export from the app is separate a
 | "Your account isn't set up yet" and no owner button | The email you signed in with is not the one in `functions\.env` (`OWNER_EMAIL`), or the owner was already set up. Fix the file and run the deploy command again. |
 | "The server part of the CRM isn't deployed yet" | Run the deploy command in step 11 and read its last lines for the reason. |
 | Deploy says billing is needed | Finish step 2 (Blaze). |
-| Storage Test fails | Open Console > Storage and press **Get started** (step 4). |
+| File storage Test fails | Publish the security rules again (they must include the `files` and `file_blobs` parts), then press Test. On the paid plan with Firebase Storage: open Console > Storage and press **Get started** (step 4). |
 | Firestore Test says the database is in another region | Firestore's region cannot be changed. Create a new project and follow the steps again with asia-south1. |
 | Test email fails with "refused the from-address" | In Resend, verify your company domain, or use `onboarding@resend.dev` until you have (it only emails your Resend login address). |
 | A permission error after you changed someone's role | Ask them to sign out and in once; the new role is picked up within a minute on its own. |

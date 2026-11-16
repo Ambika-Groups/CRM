@@ -3,6 +3,7 @@ import { sendInBackground } from "@/lib/queue";
 import type { CommandArgs, CommandName, CommandResult, QuerySpec, Where } from "@ag/core";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { resolveConfig } from "./config";
+import type { FilesApi } from "./files/types";
 import { pendingSource } from "./pending";
 import type { AuthState, DataSource, Session } from "./types";
 
@@ -172,6 +173,12 @@ export function useBackgroundRun() {
   return useCallback(<N extends CommandName>(name: N, args: CommandArgs<N>, label: string, key?: string): void => {
     sendInBackground((n, a, id) => source.run(n, a, id), name, args, label, key);
   }, [source]);
+}
+
+/** The files adapter (photos and documents on records). Null until the app has started. */
+export function useFiles(): FilesApi | null {
+  const { source, status } = useData();
+  return status === "ready" ? source.files ?? null : null;
 }
 
 /** Online/offline state for the top bar indicator and the offline strip. */

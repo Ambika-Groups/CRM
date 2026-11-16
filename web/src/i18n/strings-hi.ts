@@ -112,7 +112,20 @@ export const hi: Shape<typeof en> = {
       forget: "इस डिवाइस का कॉन्फ़िग भूलें", forgetBody: "यह डिवाइस डेमो पर लौट जाएगा। आपके Firebase प्रोजेक्ट को कुछ नहीं होगा।", forgot: "भूल गया। दोबारा खुल रहा है…",
     },
     firestore: { title: "2. Firestore डेटाबेस", desc: "जहाँ आपके सारे रिकॉर्ड रहते हैं। नाम: (default)। यह asia-south1 (मुंबई) में होना चाहिए।", where: "Firebase कंसोल > Firestore Database > Create database। asia-south1 चुनें।", name: "डेटाबेस: (default)", region: "क्षेत्र: asia-south1 (मुंबई)" },
-    storage: { title: "3. फ़ाइल स्टोरेज", desc: "जहाँ फ़ोटो और दस्तावेज़ रखे जाते हैं। us-central1 (मुफ़्त) चुनें।", where: "Firebase कंसोल > Storage > Get started। us-central1 चुनें।", bucket: "बकेट: {{bucket}}" },
+    storage: { title: "3. फ़ाइल स्टोरेज (अंदर ही)", desc: "फ़ोटो और दस्तावेज़ छोटे करके आपके डेटाबेस में ही रखे जाते हैं। कुछ सेट नहीं करना, कोई ख़र्च नहीं। लगभग 8,000 फ़ोटो की जगह है, और भरने से काफ़ी पहले चेतावनी मिलती है।", where: "कुछ लाना नहीं है। डेटाबेस चलते ही यह भी चलता है।", fact1: "हर फ़ोटो सेव होने से पहले छोटी (लगभग 150 KB) की जाती है।", fact2: "ऑफ़लाइन भी चलता है: बिना नेटवर्क खींची फ़ोटो इंटरनेट आने पर भेज दी जाती है।" },
+    storageR2: {
+      title: "3a. Cloudflare R2 (वैकल्पिक, ज़्यादा जगह)", desc: "नई फ़ोटो और दस्तावेज़ डेटाबेस की जगह आपके अपने Cloudflare R2 बकेट में रखता है। चालू करने और टेस्ट पास होने के बाद इस्तेमाल होता है। फ़ाइलें निजी रहती हैं: हर फ़ाइल ऐसे लिंक से खुलती है जो 10 मिनट चलता है।",
+      where: "Cloudflare डैशबोर्ड > R2 Object Storage। Cloudflare R2 को खाते में जोड़ने के लिए चेकआउट कराता है, जिसमें भुगतान का तरीक़ा (कार्ड) देना पड़ता है, हालाँकि हर महीने पहले 10 GB मुफ़्त हैं; मुफ़्त सीमा से ऊपर पैसे लगते हैं। कार्ड नहीं जोड़ना चाहते तो अंदर का स्टोरेज रखें या Cloudinary लें। फिर: एक बकेट बनाएँ। R2 > Manage API tokens में उस बकेट के लिए Object Read & Write वाला टोकन बनाएँ और उसकी Access Key ID और Secret Access Key कॉपी करें। बकेट की Settings में CORS नियम जोड़ें जो इस साइट के पते से GET और PUT (content-type हेडर के साथ) की अनुमति दे।",
+      accountId: "अकाउंट ID", accountIdHint: "32 अक्षर और अंक, R2 के overview पेज पर।", accessKeyId: "Access Key ID", accessKeyIdHint: "R2 API टोकन से।",
+      secretAccessKey: "Secret Access Key", secretAccessKeyHint: "टोकन बनाते समय एक ही बार दिखती है।", bucket: "बकेट का नाम", bucketHint: "जैसे ambika-crm-files।",
+      publicBaseUrl: "सार्वजनिक पता (वैकल्पिक)", publicBaseUrlHint: "सिर्फ़ तब, जब आपने बकेट सार्वजनिक किया हो। तब साइट की फ़ोटो सीधे इस पते से खुलती हैं। सब कुछ निजी रखने के लिए ख़ाली छोड़ें।",
+    },
+    storageCloudinary: {
+      title: "3b. Cloudinary (वैकल्पिक, मुफ़्त प्लान)", desc: "नई फ़ोटो और दस्तावेज़ डेटाबेस की जगह मुफ़्त Cloudinary खाते में रखता है। चालू करने और टेस्ट पास होने के बाद इस्तेमाल होता है (R2 भी चालू हो तो R2 चलता है)। Cloudinary की फ़ाइल उसके पते वाले किसी के लिए भी खुलती है, इसलिए पहचान पत्र और हस्ताक्षर वहाँ कभी नहीं भेजे जाते।",
+      where: "cloudinary.com: Free प्लान में साइन अप करें। कार्ड नहीं माँगा जाता; प्लान में हर महीने 25 क्रेडिट मिलते हैं (एक क्रेडिट लगभग 1 GB स्टोरेज या डाउनलोड)। क्लाउड नाम डैशबोर्ड पर है। फिर Settings > Upload > Upload presets > Add upload preset, Signing mode को Unsigned करें और प्रीसेट का नाम कॉपी करें। PDF खुलने के लिए Settings > Security में \"Allow delivery of PDF and ZIP files\" चालू करें।",
+      cloudName: "क्लाउड नाम", cloudNameHint: "Cloudinary डैशबोर्ड पर।", uploadPreset: "अपलोड प्रीसेट", uploadPresetHint: "किसी Unsigned प्रीसेट का नाम।",
+    },
+    storageFirebase: { title: "3c. Firebase Cloud Storage (पेड प्लान चाहिए)", desc: "Google का अपना फ़ाइल स्टोरेज। इसके लिए Firebase का पेड प्लान और कार्ड चाहिए, इसलिए यहाँ बंद है। अंदर का स्टोरेज यही काम मुफ़्त में करता है।", where: "ज़रूरत नहीं। कभी पेड प्लान लें तो बाद में चालू किया जा सकता है।", fact: "बंद: पेड प्लान चाहिए।" },
     signIn: {
       title: "4. साइन इन", desc: "साइट स्टाफ़ के लिए Google, दफ़्तर स्टाफ़ के लिए ईमेल और पासवर्ड, और विकल्प के रूप में फ़ोन कोड (केवल भारत)।", where: "Firebase कंसोल > Authentication > Sign-in method। Google, Email/Password और Phone चालू करें।",
       domains: "अनुमति वाले पते", domainsBody: "इस साइट का पता Authentication > Settings > Authorized domains में होना चाहिए। यह पेज यहाँ है: {{host}}", netlify: "अपना Netlify पता (.netlify.app वाला) और अपना डोमेन, अगर हो, वह भी जोड़ें।",

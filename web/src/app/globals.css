@@ -6,6 +6,7 @@
 @import "../styles/v4.css";
 @import "../styles/dashboard.css";
 @import "../styles/setup.css";
+@import "../styles/files.css";
 
 /* Tailwind theme mapped onto the tokens. Prefixed "ag-" so no utility name shadows a token variable. */
 @theme inline {

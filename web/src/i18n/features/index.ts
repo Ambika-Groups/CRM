@@ -8,9 +8,11 @@
  * ONLY THE LANE LEAD EDITS THIS FILE (one import and one line per feature, in both index.ts and index-hi.ts).
  */
 // <features:en:imports> (append only)
+import { en as filesEn } from "./files.en";
 // </features:en:imports>
 
 export const featureEn = {
   // <features:en> (append only)
+  files: filesEn,
   // </features:en>
 };

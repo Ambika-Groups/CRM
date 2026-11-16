@@ -20,6 +20,8 @@ import {
   type QueryConstraint, type QuerySnapshot,
 } from "firebase/firestore";
 import { resolveConfig } from "../config";
+import { FirebaseFiles } from "../files/firebaseFiles";
+import type { FilesApi } from "../files/types";
 import { isSmallCollection, type AuthApi, type DataSource, type SampleApi, type Session, type SetupApi } from "../types";
 import { call, createClients, docData, isDenied, type Clients } from "./client";
 import { FirebaseAuth } from "./firebaseAuth";
@@ -56,6 +58,7 @@ export class FirebaseSource implements DataSource {
   auth!: AuthApi;
   setup!: SetupApi;
   sample!: SampleApi;
+  files!: FilesApi;
   private clients!: Clients;
   private fbAuth!: FirebaseAuth;
   private listeners = new Set<() => void>();
@@ -72,6 +75,7 @@ export class FirebaseSource implements DataSource {
     this.fbAuth = new FirebaseAuth(this.clients, () => this.refreshSession(), () => this.clearLocal());
     this.auth = this.fbAuth;
     this.sample = new FirebaseSample(this.clients, () => { this.refresh("*"); this.bump(); });
+    this.files = new FirebaseFiles(this.clients, () => (this.cached ? { role: this.cached.role, uid: this.cached.uid, assignedProjectIds: this.cached.projectIds } : null));
     this.setup = new FirebaseSetup(this.clients, this.fbAuth, () => this.fbAuth.currentUser()?.uid ?? "");
     await this.fbAuth.start();
     // Read again when the app comes back to the foreground after a while (other people have been working).

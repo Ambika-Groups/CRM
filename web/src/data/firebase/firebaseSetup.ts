@@ -6,8 +6,9 @@
  */
 import { CommandError, INTEGRATIONS, type FirebaseWebConfig, type IntegrationId, type IntegrationStatus, type TestOutcome } from "@ag/core";
 import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc } from "firebase/firestore";
-import { deleteObject, ref, uploadBytes } from "firebase/storage";
 import { getToken as getAppCheckToken } from "firebase/app-check";
+import { FirebaseFiles } from "../files/firebaseFiles";
+import { inlineStorageTest } from "../files/selfTest";
 import { ReauthNeeded, type SampleApi, type SampleStatus, type SetupApi, type SetupStatuses } from "../types";
 import { resolveConfig, saveDeviceSiteKey } from "../config";
 import { call, docData, isDenied, type Clients } from "./client";
@@ -87,7 +88,7 @@ export class FirebaseSetup implements SetupApi {
   }
 
   private async browserTest(id: IntegrationId): Promise<TestOutcome> {
-    const { db, storage, projectId } = this.c;
+    const { db, projectId } = this.c;
     const uid = this.uid();
     switch (id) {
       case "firebaseConfig": {
@@ -106,13 +107,9 @@ export class FirebaseSetup implements SetupApi {
         return server && !server.ok ? { ok: false, message: server.message, ...(server.hint ? { hint: server.hint } : {}) }
           : { ok: true, message: `The database accepted a test record and returned it. ${server?.message ?? ""}`.trim() };
       }
-      case "storage": {
-        const file = ref(storage, `system_probe/${uid}.txt`);
-        await uploadBytes(file, new Blob(["ok"], { type: "text/plain" }));
-        await deleteObject(file);
-        const server = (await call<unknown, { lines: { key: string; ok: boolean; message: string; hint?: string }[] }>(this.c, "connectionTest")({})).lines.find((l) => l.key === "storage");
-        return { ok: true, message: `A test file was uploaded and deleted. ${server?.message ?? ""}`.trim(), ...(server?.hint ? { hint: server.hint } : {}) };
-      }
+      case "storage":
+        // The built-in store: keep a tiny file in the database, read it back, delete it (as the super user).
+        return inlineStorageTest(new FirebaseFiles(this.c, () => ({ role: "owner", uid, assignedProjectIds: [] })));
       case "signIn": {
         const method = this.auth.signInMethod();
         const used = method === "google.com" ? "Google" : method === "password" ? "email and password" : method === "phone" ? "a phone code" : "an unknown method";

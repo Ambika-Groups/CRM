@@ -1,5 +1,6 @@
 import type { CommandArgs, CommandName, CommandResult, FirebaseWebConfig, IntegrationId, IntegrationStatus, Page, QuerySpec, Role, TestOutcome, User, Where } from "@ag/core";
 import type { DataMode } from "./config";
+import type { FilesApi } from "./files/types";
 
 export interface Session {
   uid: string;
@@ -47,6 +48,8 @@ export interface DataSource {
   setup?: SetupApi;
   /** Firebase mode: sample data for an empty project (super user, on purpose only). */
   sample?: SampleApi;
+  /** Photos and documents on records (the storage adapter): keep, fetch, remove, usage. */
+  files?: FilesApi;
   /** Demo only. */
   demoUsers?(): User[];
   switchUser?(uid: string): Promise<void>;
