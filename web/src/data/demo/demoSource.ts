@@ -17,7 +17,7 @@ const STORE = "snapshot";
 const KEY = "v1";
 const SESSION_KEY = "ag-demo-uid";
 /** Bump when the seed changes shape, so browsers reseed. */
-export const DEMO_SEED_VERSION = 7;
+export const DEMO_SEED_VERSION = 8;
 
 /** Map a collection path to the key the role matrix uses. */
 function matrixKey(collection: string, id: string): string {

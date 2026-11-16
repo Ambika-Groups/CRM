@@ -11,6 +11,8 @@
  */
 import type { MemoryStore } from "../store";
 // <seed:imports> (append only)
+import { seedAccounts } from "./accounts";
+import { seedExpenses } from "./expenses";
 // </seed:imports>
 
 export interface FeatureSeedCtx {
@@ -25,5 +27,7 @@ export interface FeatureSeedCtx {
 
 export const FEATURE_SEEDS: ((ctx: FeatureSeedCtx) => void | Promise<void>)[] = [
   // <seed:list> (append only)
+  seedExpenses,
+  seedAccounts,
   // </seed:list>
 ];

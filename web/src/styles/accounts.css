@@ -1,0 +1,43 @@
+/* Accounts: totals, the account list, the cash and bank book, and the export check. Tokens only, so both themes work. */
+.acc-note { margin-bottom: var(--space-4); }
+.acc-kpis { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 600px) { .acc-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); } }
+.acc-kpis .kpi .value { white-space: normal; overflow-wrap: anywhere; }
+.acc-row-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; justify-content: flex-end; }
+@media (max-width: 599px) { table.data td.acc-row-actions { justify-content: flex-start; padding-top: var(--space-2); } table.data td.acc-row-actions::before { content: none; } }
+.acc-links { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 768px) { .acc-links { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.acc-link { display: flex; gap: var(--space-3); align-items: flex-start; color: var(--color-text); text-decoration: none; min-height: var(--tap-min-phone); }
+.acc-link:hover { border-color: var(--color-brand); }
+.acc-link > span { display: grid; gap: 2px; min-width: 0; }
+.acc-link .icon { flex: none; margin-top: 2px; color: var(--color-brand); }
+
+/* Date range bar on the book and the export screen */
+.acc-range { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); align-items: end; margin-bottom: var(--space-4); }
+@media (min-width: 600px) { .acc-range { grid-template-columns: repeat(2, minmax(0, 200px)) auto; } }
+.acc-range .btn { justify-self: start; }
+.acc-presets { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
+
+/* Cash book and bank book */
+.book-head { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); align-items: baseline; margin-bottom: var(--space-4); }
+.book-head .big { overflow-wrap: anywhere; }
+table.data tr.book-edge td { font-weight: var(--weight-label); background: var(--color-page); }
+table.data td.book-details { max-width: 420px; overflow-wrap: anywhere; }
+.book-foot { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; margin-top: var(--space-3); }
+.book-foot > span { margin-right: auto; }
+.tone-in { color: var(--color-success); }
+
+/* Money forms: what will happen, shown before saving */
+.acc-form { max-width: 880px; }
+.acc-after { margin-top: var(--space-6); max-width: 480px; }
+.acc-subcard { margin-top: var(--space-6); max-width: 880px; }
+.acc-subcard .form-actions { margin-top: var(--space-4); justify-content: flex-start; }
+
+/* Export check */
+.acc-check-ok { color: var(--color-success); }
+.acc-check-bad { color: var(--color-error); }
+.acc-export-result { display: grid; gap: var(--space-4); margin-top: var(--space-6); }
+.acc-locks { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.acc-locks li { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; padding: var(--space-3) 0; border-top: 1px solid var(--color-divider); }
+.acc-locks li:first-child { border-top: 0; }
+.acc-locks li > span { flex: 1 1 220px; min-width: 0; display: grid; gap: 2px; }

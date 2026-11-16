@@ -9,10 +9,14 @@
  */
 // <features:en:imports> (append only)
 import { en as filesEn } from "./files.en";
+import { en as accountsEn } from "./accounts.en";
+import { en as expensesEn } from "./expenses.en";
 // </features:en:imports>
 
 export const featureEn = {
   // <features:en> (append only)
   files: filesEn,
+  accounts: accountsEn,
+  expenses: expensesEn,
   // </features:en>
 };

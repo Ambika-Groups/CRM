@@ -64,6 +64,7 @@ export function generatedWageExpense(p: WorkerPayment, worker: Worker | null): E
     accountId: null, // generated expenses never move money; the payment does
     approvalStatus: "approved",
     approvedBy: "system",
+    isDeleted: false,
     source: "wage",
     sourceRef: { entity: "worker_payments", id: p.id },
     enteredBy: "system",

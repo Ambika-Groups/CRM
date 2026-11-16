@@ -22,7 +22,7 @@ describe("spec §17 test data", () => {
     expect(projects.filter((p) => p.type === "government")).toHaveLength(1);
     expect(store.list("workers")).toHaveLength(50);
     expect(new Set(store.list<Attendance>("attendance").map((a) => a.date)).size).toBe(30);
-    expect(store.list<Expense>("expenses", (e) => e.source === "manual")).toHaveLength(200);
+    expect(store.list<Expense>("expenses", (e) => e.source === "manual" && /^exp\d{4}$/.test(e.id))).toHaveLength(200);
     expect(store.list("invoices")).toHaveLength(10);
     expect(summary).toMatchObject({ projects: 3, workers: 50, attendanceDays: 30, expensesManual: 200, invoices: 10 });
   });

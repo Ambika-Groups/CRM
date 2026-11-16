@@ -127,6 +127,7 @@ export function canRead(collection: string, doc: Record<string, unknown>, c: Ctx
     case "payments_received":
     case "accounts":
     case "account_transactions":
+    case "account_transfers":
     case "audit_log":
     case "vendor_bills":
     case "vendor_payments":

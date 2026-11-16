@@ -7,6 +7,8 @@
 @import "../styles/dashboard.css";
 @import "../styles/setup.css";
 @import "../styles/files.css";
+@import "../styles/expenses.css";
+@import "../styles/accounts.css";
 
 /* Tailwind theme mapped onto the tokens. Prefixed "ag-" so no utility name shadows a token variable. */
 @theme inline {

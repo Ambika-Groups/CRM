@@ -1,7 +1,7 @@
-import { ModulePage } from "@/components/ModulePage";
+import { ExpensesPage } from "@/components/expenses/ExpensesPage";
 
 export const metadata = { title: "Expenses" };
 
 export default function Page() {
-  return <ModulePage navKey="expenses" />;
+  return <ExpensesPage />;
 }

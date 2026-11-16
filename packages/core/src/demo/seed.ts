@@ -372,7 +372,7 @@ export async function seedDemo(anchor: string): Promise<{ store: MemoryStore; su
     const pending = i >= pendingFrom;
     const exp: Expense = {
       id: `exp${String(i + 1).padStart(4, "0")}`, projectId: pid, projectName: site.name, date, monthKey: monthKeyOf(date), fy: fyOf(date),
-      categoryId: k.cat, description: k.desc, qtyMilli, unit: k.unit, ratePaise, amountPaise: amount, taxablePaise: taxable,
+      categoryId: k.cat, description: k.desc, searchKeywords: searchKeywords(k.desc, vendor?.name ?? "Local supplier"), qtyMilli, unit: k.unit, ratePaise, amountPaise: amount, taxablePaise: taxable,
       gstRateBp: k.gstBp, cgstPaise: gstHalf, sgstPaise: gstHalf, igstPaise: 0, tdsPaise: 0,
       payeeType: vendor ? "vendor" : "other", payeeId: vendor?.id ?? null, payeeName: vendor?.name ?? "Local supplier", partyGstin: vendor?.gstin ?? "",
       mode, paidStatus: mode === "credit" ? "unpaid" : "paid",

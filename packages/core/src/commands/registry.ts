@@ -2,11 +2,12 @@
  * Command registry: the names the UI calls. Demo mode runs these directly on the browser store; Firebase
  * mode sends the same name and arguments to a callable Cloud Function that runs the same function (M1.6).
  */
-import { approveExpense, rejectExpense } from "../actions";
 import type { MemoryStore } from "../store";
 import { createClient, updateClient } from "./clients";
 import type { CommandFn } from "./common";
 // <commands:imports> one line per feature (lane lead only, append only)
+import { ACCOUNT_COMMANDS } from "./accounts";
+import { EXPENSE_COMMANDS } from "./expenses";
 // </commands:imports>
 import { createUser, requestRateChange, saveKyc, saveWorker, setAssignment, setRoster, setSuperUser, setUserActive, setUserRole, updateSettings } from "./people";
 import {
@@ -34,8 +35,6 @@ export const COMMANDS = {
   setSuperUser: (s, a: { userId: string; superUser: boolean }, c) => setSuperUser(s, a.userId, a.superUser, c),
   setAssignment: (s, a: { projectId: string; userId: string; assigned: boolean }, c) => setAssignment(s, a.projectId, a.userId, a.assigned, c),
   updateSettings: (s, a: { docId: string; patch: Record<string, unknown> }, c) => updateSettings(s, a.docId, a.patch, c),
-  approveExpense: (s, a: { id: string }, c) => approveExpense(s, a.id, { uid: c.uid, nowIso: c.nowIso }),
-  rejectExpense: (s, a: { id: string; reason: string }, c) => rejectExpense(s, a.id, a.reason, { uid: c.uid, nowIso: c.nowIso }),
   markAttendanceDay: (s, a: Parameters<typeof markAttendanceDay>[1], c) => markAttendanceDay(s, a, c),
   unlockAttendanceDay: (s, a: Parameters<typeof unlockAttendanceDay>[1], c) => unlockAttendanceDay(s, a, c),
   saveProjectTerms: (s, a: Parameters<typeof saveProjectTerms>[1], c) => saveProjectTerms(s, a, c),
@@ -46,6 +45,8 @@ export const COMMANDS = {
   saveThekedarContract: (s, a: Parameters<typeof saveThekedarContract>[1], c) => saveThekedarContract(s, a, c),
   addContractMeasurement: (s, a: Parameters<typeof addContractMeasurement>[1], c) => addContractMeasurement(s, a, c),
   // <commands:maps> one spread per feature, for example ...EXPENSE_COMMANDS (lane lead only, append only)
+  ...ACCOUNT_COMMANDS,
+  ...EXPENSE_COMMANDS,
   // </commands:maps>
 } satisfies Record<string, CommandFn>;
 

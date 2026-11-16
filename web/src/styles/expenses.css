@@ -1,0 +1,51 @@
+/* Expense screens (spec §7.2). Only what the shared styles don't already give; colours and sizes come from the tokens,
+   so both themes work without a second set of rules. */
+
+/* Cascading category picker: one select per level, side by side when there is room. */
+.exp-cat-levels { display: grid; gap: var(--space-2); grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+
+/* The "what will be saved" split under the amount. */
+.exp-preview { max-width: 420px; margin-top: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--color-divider); border-radius: var(--radius-sm, 0); background: var(--color-page); }
+
+/* List: second line under the category, badges, date filters. */
+.exp-sub { display: block; font-weight: var(--weight-body, 400); color: var(--color-text-secondary); font-size: var(--text-small); overflow-wrap: anywhere; }
+.exp-badges { display: inline-flex; flex-wrap: wrap; gap: var(--space-1); justify-content: flex-end; }
+.exp-filters .exp-date { display: flex; align-items: center; gap: var(--space-2); flex: 0 1 190px; font-size: var(--text-small); color: var(--color-text-secondary); }
+.exp-filters .exp-date .input { min-width: 0; }
+.exp-filters .input[aria-invalid="true"] { border-color: var(--color-error); }
+
+/* Totals under the list. */
+.exp-totals { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-4); border: 1px solid var(--color-divider); border-radius: var(--radius-sm, 0); background: var(--color-surface); }
+.exp-totals dl { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 0; }
+.exp-totals dt { font-size: var(--text-small); color: var(--color-text-secondary); }
+.exp-totals dd { margin: 0; font-weight: var(--weight-heading); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.exp-totals .btn { justify-self: start; }
+
+/* Entries waiting on this device. */
+.exp-queue { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: grid; gap: var(--space-2); }
+.exp-queue li { display: flex; justify-content: space-between; gap: var(--space-3); align-items: flex-start; padding: var(--space-2) 0; border-top: 1px solid var(--color-divider); }
+.exp-queue li > span { min-width: 0; overflow-wrap: anywhere; }
+
+/* Approvals: the bar above the table, the tick column, and buttons in a row cell. */
+.exp-bulk { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.exp-pick input, .exp-bulk input { width: 20px; height: 20px; }
+td.exp-pick { width: 44px; }
+td.exp-row-buttons { width: auto; white-space: nowrap; }
+.exp-row-buttons .btn + .btn { margin-left: var(--space-2); }
+@media (max-width: 599px) {
+  td.exp-pick { justify-content: flex-start; }
+  td.exp-row-buttons { white-space: normal; flex-wrap: wrap; justify-content: flex-end; }
+}
+
+/* Detail page. */
+.exp-detail-grid { display: grid; gap: var(--space-4); align-items: start; }
+@media (min-width: 1024px) { .exp-detail-grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } .exp-detail-grid .exp-history { grid-column: 1 / -1; } }
+.exp-kv { grid-template-columns: 1fr; gap: 0; }
+.exp-kv-row { display: grid; grid-template-columns: minmax(110px, 2fr) minmax(0, 3fr); gap: var(--space-3); padding: var(--space-2) 0; border-top: 1px solid var(--color-divider); }
+.exp-kv-row:first-child { border-top: 0; }
+.exp-kv-row dd { text-align: left; overflow-wrap: anywhere; }
+.exp-h3 { margin: var(--space-4) 0 var(--space-2); font-size: var(--text-body); font-weight: var(--weight-label); }
+.exp-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.exp-timeline li { display: grid; gap: 2px; padding-left: var(--space-4); border-left: 2px solid var(--color-divider); }
+.exp-timeline li[data-action="approved"], .exp-timeline li[data-action="paid"] { border-left-color: var(--color-success); }
+.exp-timeline li[data-action="rejected"], .exp-timeline li[data-action="deleted"] { border-left-color: var(--color-error); }

@@ -222,6 +222,8 @@ export interface Attendance {
 }
 
 export interface Expense extends Audit {
+  /** Lower-case words of the description and payee, for the list search box. */
+  searchKeywords?: string[];
   id: string;
   projectId: string | null;
   projectName?: string | null;
