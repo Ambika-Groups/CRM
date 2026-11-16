@@ -9,6 +9,7 @@ import type { CommandFn } from "./common";
 import { ACCOUNT_COMMANDS } from "./accounts";
 import { EXPENSE_COMMANDS } from "./expenses";
 import { CATEGORY_COMMANDS } from "./categories";
+import { DOCUMENT_COMMANDS } from "./documents";
 // </commands:imports>
 import { createUser, requestRateChange, saveKyc, saveWorker, setAssignment, setRoster, setSuperUser, setUserActive, setUserRole, updateSettings } from "./people";
 import {
@@ -49,6 +50,7 @@ export const COMMANDS = {
   ...ACCOUNT_COMMANDS,
   ...EXPENSE_COMMANDS,
   ...CATEGORY_COMMANDS,
+  ...DOCUMENT_COMMANDS,
   // </commands:maps>
 } satisfies Record<string, CommandFn>;
 

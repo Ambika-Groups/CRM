@@ -4,6 +4,7 @@ import { hi as filesHi } from "./files.hi";
 import { hi as accountsHi } from "./accounts.hi";
 import { hi as expensesHi } from "./expenses.hi";
 import { hi as spendingsHi } from "./spendings.hi";
+import { hi as documentsHi } from "./documents.hi";
 // </features:hi:imports>
 
 export const featureHi = {
@@ -12,5 +13,6 @@ export const featureHi = {
   accounts: accountsHi,
   expenses: expensesHi,
   spendings: spendingsHi,
+  documents: documentsHi,
   // </features:hi>
 };

@@ -12,6 +12,7 @@ import { en as filesEn } from "./files.en";
 import { en as accountsEn } from "./accounts.en";
 import { en as expensesEn } from "./expenses.en";
 import { en as spendingsEn } from "./spendings.en";
+import { en as documentsEn } from "./documents.en";
 // </features:en:imports>
 
 export const featureEn = {
@@ -20,5 +21,6 @@ export const featureEn = {
   accounts: accountsEn,
   expenses: expensesEn,
   spendings: spendingsEn,
+  documents: documentsEn,
   // </features:en>
 };

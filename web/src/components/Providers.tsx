@@ -1,6 +1,8 @@
 "use client";
 import { i18nHydrated } from "@/i18n";
 import { useEffect, type ReactNode } from "react";
+import { LetterheadBridge } from "@/components/documents/LetterheadBridge";
+import { ShareLogBridge } from "@/components/share/ShareLogBridge";
 import { ToastProvider } from "@/components/ui/feedback";
 import { DataProvider } from "@/data/DataProvider";
 
@@ -12,5 +14,5 @@ export function Providers({ children }: { children: ReactNode }) {
       navigator.serviceWorker.register("/sw.js").catch(() => { /* offline support is best effort */ });
     }
   }, []);
-  return <DataProvider><ToastProvider>{children}</ToastProvider></DataProvider>;
+  return <DataProvider><ToastProvider><ShareLogBridge /><LetterheadBridge />{children}</ToastProvider></DataProvider>;
 }

@@ -1,0 +1,35 @@
+/* Documents (spec §8.4, §8.5): the frame around a page on screen, and the print-only view.
+   The look of the page itself is one string in core (documents.ts DOCUMENT_CSS), shared with the print window, so it
+   is not repeated here. Colours and sizes of the frame come from the tokens, so both themes work. */
+
+.doc-layout { display: grid; gap: var(--space-4); min-width: 0; }
+.doc-layout > * { min-width: 0; }
+
+/* The paper: white in both themes (it shows what will print), never wider than A4 or than the screen. */
+.doc-sheet { width: 100%; max-width: 210mm; margin-inline: auto; border: 1px solid var(--color-divider); background: #fff; overflow: hidden; }
+
+.doc-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.doc-actions .btn { min-height: var(--tap-min-phone, 48px); }
+.doc-actions a[aria-disabled="true"] { pointer-events: none; opacity: 0.6; }
+@media (max-width: 599px) { .doc-actions .btn { flex: 1 1 100%; justify-content: center; } }
+.doc-actions-wrap .hint { margin-top: var(--space-2); }
+
+.doc-lang { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin-bottom: var(--space-4); font-size: var(--text-small); color: var(--color-text-secondary); }
+.doc-h { margin: var(--space-4) 0 var(--space-1); font-size: var(--text-small); font-weight: var(--weight-label, 500); color: var(--color-text-secondary); }
+.doc-message { margin: 0; padding: var(--space-3); border: 1px solid var(--color-divider); background: var(--color-page); color: var(--color-text); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.doc-log { list-style: none; margin: 0; padding: 0; display: grid; }
+.doc-log li { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); align-items: baseline; padding: var(--space-2) 0; border-top: 1px solid var(--color-divider); }
+.doc-log li:first-child { border-top: 0; }
+
+/* The print-only copy sits directly under <body> (DocumentSheet.tsx PrintOnly) and is never shown on screen. */
+.ag-print-root { display: none; }
+
+@page { size: A4; margin: 14mm 14mm 16mm; }
+
+@media print {
+  /* While a document is open, printing shows the document alone: black on white, whatever the theme. */
+  html.ag-has-print-root, html.ag-has-print-root body { background: #fff !important; color: #1A1206 !important; }
+  html.ag-has-print-root body > *:not(.ag-print-root) { display: none !important; }
+  html.ag-has-print-root .ag-print-root { display: block !important; }
+}

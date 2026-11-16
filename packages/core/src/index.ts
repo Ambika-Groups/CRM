@@ -39,4 +39,6 @@ export * from "./expenses";
 export * from "./commands/expenses";
 export * from "./spendings";
 export * from "./commands/categories";
+export * from "./documents";
+export * from "./commands/documents";
 // </core:exports>
