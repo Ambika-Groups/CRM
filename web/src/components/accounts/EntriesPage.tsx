@@ -63,6 +63,7 @@ export function EntriesPage() {
         filters={[{ key: "kind", label: t("accounts.entries.kind"), options: KINDS.map((k) => ({ value: k, label: kindLabel(k) })), where: (v) => ({ field: "kind", op: "==", value: v }) }]}
         columns={[
           { key: "date", header: t("accounts.entries.date"), cell: (e) => date(e.date, lang), csv: (e) => e.date, sortField: "date" },
+          { key: "voucherNo", header: t("accounts.entries.voucherNo"), cell: (e) => (e as { voucherNo?: string | null }).voucherNo || "—", csv: (e) => (e as { voucherNo?: string | null }).voucherNo ?? "" },
           { key: "what", header: t("accounts.entries.what"), cell: (e) => kindLabel(e.kind), cardHead: true },
           { key: "details", header: t("accounts.entries.details"), cell: (e) => e.narration ?? "" },
           { key: "from", header: t("accounts.entries.from"), cell: (e) => name(e.fromAccountId) || "—", csv: (e) => name(e.fromAccountId) },

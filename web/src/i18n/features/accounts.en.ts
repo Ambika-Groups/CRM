@@ -68,7 +68,7 @@ export const en = {
   },
   entries: {
     title: "Transfers and other entries", empty: "No transfers or entries yet", emptyBody: "Cash deposits, withdrawals, drawings, capital and loans will be listed here.",
-    date: "Date", what: "What", details: "Details", from: "From", to: "To", amount: "Amount", by: "Entered by", status: "Status", kind: "Kind",
+    date: "Date", voucherNo: "Voucher no.", what: "What", details: "Details", from: "From", to: "To", amount: "Amount", by: "Entered by", status: "Status", kind: "Kind",
     saved: "Saved", cancelled: "Cancelled", cancel: "Cancel this entry", cancelTitle: "Cancel this entry?",
     cancelBody: "{{what}} of {{amount}} on {{date}} will be reversed and the balances put back. It stays on record as cancelled.",
     reason: "Reason", reasonHint: "For example Entered twice", cancelConfirm: "Cancel the entry", cancelDone: "Entry cancelled. The balances are back as they were.",

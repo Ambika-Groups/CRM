@@ -76,6 +76,7 @@ export function ExpenseDetail() {
   const head = categoryLabel(tree, e.categoryId, lang, true) || title;
   const rows: [string, ReactNode][] = [
     [t("expenses.col.date"), date(e.date, lang)],
+    ...(e.voucherNo ? [[t("expenses.detail.voucherNo"), <span key="vno" data-voucher-no>{e.voucherNo}</span>] as [string, ReactNode]] : []),
     [t("expenses.col.project"), e.projectId ? (finance || session.projectIds.includes(e.projectId) ? <Link href={`/projects/view/?id=${e.projectId}`}>{e.projectName ?? e.projectId}</Link> : e.projectName ?? "") : t("expenses.form.office")],
     [t("expenses.col.category"), head],
     [t("expenses.form.description"), e.description || "—"],

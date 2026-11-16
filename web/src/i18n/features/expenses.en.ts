@@ -86,6 +86,7 @@ export const en = {
     referenceHint: "UPI or bank reference, or the cheque number", done: "{{amount}} marked as paid.", action: "Mark as paid",
   },
   detail: {
+    voucherNo: "Voucher number",
     title: "Expense", wasCredit: "bought on credit", noAccount: "Not chosen yet", source: "Where it came from",
     offline: "You are offline. Approving, deleting and marking as paid need a connection.",
     deleted: "This entry was deleted.", rejected: "Rejected.", fixIt: "Correct it and send it again", waiting: "Waiting for approval.", waitsFor: "Can be approved by: {{who}}.",
