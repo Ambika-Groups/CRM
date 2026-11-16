@@ -74,6 +74,8 @@ export type TransferKind = "transfer" | MoneyEntryKind;
 /** An `account_transfers` document as this feature writes it (the model's `AccountTransfer` with the two extra kinds and a few plain fields). */
 export interface MoneyEntry extends Omit<AccountTransfer, "kind"> {
   kind: TransferKind;
+  /** The short voucher number the server gave when the entry was saved (D-54). Older entries have none. */
+  voucherNo?: string | null;
   /** The lender, the owner or partner, or the bank. */
   partyName?: string;
   /** What the person typed as a note. `narration` is the line the books show. */

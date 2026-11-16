@@ -267,16 +267,16 @@ export function buildMasterRows(i: MasterInput): MasterRow[] {
         enteredBy: t.enteredByName || who(t.createdBy), entryDate: entryDay(t.createdAt), figures: {},
       };
       if (t.kind === "transfer") {
-        if (t.toAccountId) rows.push({ ...common, voucherNo: `TRF-${t.id}`, voucherType: "Transfer", partyName: acc(t.toAccountId), account: acc(t.fromAccountId), debitPaise: t.amountPaise,
+        if (t.toAccountId) rows.push({ ...common, voucherNo: (t as { voucherNo?: string | null }).voucherNo || `TRF-${t.id}`, voucherType: "Transfer", partyName: acc(t.toAccountId), account: acc(t.fromAccountId), debitPaise: t.amountPaise,
           source: { entity: "account_transfers", id: t.id, line: 1 }, moves: [{ accountId: t.toAccountId, sign: 1, amountPaise: t.amountPaise }] });
-        if (t.fromAccountId) rows.push({ ...common, voucherNo: `TRF-${t.id}`, voucherType: "Transfer", partyName: acc(t.fromAccountId), account: acc(t.toAccountId), creditPaise: t.amountPaise,
+        if (t.fromAccountId) rows.push({ ...common, voucherNo: (t as { voucherNo?: string | null }).voucherNo || `TRF-${t.id}`, voucherType: "Transfer", partyName: acc(t.fromAccountId), account: acc(t.toAccountId), creditPaise: t.amountPaise,
           source: { entity: "account_transfers", id: t.id, line: 2 }, moves: [{ accountId: t.fromAccountId, sign: -1, amountPaise: t.amountPaise }] });
         continue;
       }
       const out = ENTRY_DIRECTION[t.kind] === "out";
       const accountId = out ? t.fromAccountId : t.toAccountId;
       rows.push({
-        ...common, voucherNo: `JRN-${t.id}`, voucherType: "Journal", partyName: t.partyName || ENTRY_KIND_NAMES[t.kind] || "", category1: ENTRY_KIND_NAMES[t.kind] ?? "",
+        ...common, voucherNo: (t as { voucherNo?: string | null }).voucherNo || `JRN-${t.id}`, voucherType: "Journal", partyName: t.partyName || ENTRY_KIND_NAMES[t.kind] || "", category1: ENTRY_KIND_NAMES[t.kind] ?? "",
         account: acc(accountId), debitPaise: out ? t.amountPaise : null, creditPaise: out ? null : t.amountPaise,
         source: { entity: "account_transfers", id: t.id, line: 1 }, moves: accountId ? [{ accountId, sign: out ? -1 : 1, amountPaise: t.amountPaise }] : [],
       });

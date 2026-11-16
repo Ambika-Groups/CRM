@@ -619,7 +619,9 @@ Confirmed by a failed deploy ("billing disabled" on the TTL field override of `c
 - **Files.** One interface (`FilesApi`, `FileAttach`); the default store keeps compressed pictures in the database (700,000 bytes at most); Cloudflare R2 and Cloudinary are optional providers; ID proofs and signatures never leave the built-in store.
 - **Generated expenses that pay for themselves.** An expense generated from diesel, a repair or a bank charge has no payment record of its own, so it carries the paid-from account and moves it (the same rule in both lanes). Wages, purchases and machine rent are paid by their own records (D-16 unchanged).
 
-### D-54 (proposed, not built): short voucher numbers
+### D-54: short voucher numbers (approved through the supervisor 16 Nov 2026; built)
+
+Built with the existing single `voucher` series of D-12 (`V/2026-27/00042`, format editable in Settings > numbering) instead of one series per type: `packages/core/src/voucher.ts`, used by new expenses, recurring expenses, transfers and other money entries; the master CSV shows it. Tests VN-01..03. The proposal as written:
 
 PRD 11A.2 asks for "Voucher No (auto)". Today a new entry's voucher reference is made from its record id (`EXP-s6Dj...`), which a CA cannot read out. Proposal, the smallest design that still works offline and keeps numbering on the server (D-12):
 

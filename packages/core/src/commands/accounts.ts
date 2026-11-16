@@ -7,6 +7,7 @@
  * in and out. The opening balance is posted the same way (a posting record, the difference applied), so it can be
  * changed or replayed without counting twice. Owner and accountant only; the month lock is the owner's.
  */
+import { nextVoucherNo } from "../voucher";
 import {
   ENTRY_DIRECTION, ENTRY_KIND_NAMES, MONEY_ENTRY_KINDS, MONTH_KEY_RE, assertMonthOpen, engineSupportsKind, entryNarration, openingTargets,
   validateAccount, validateMove, validateOpening, type AccountInput, type MoneyEntry, type MoneyEntryKind, type PeriodLock,
@@ -127,7 +128,7 @@ async function writeEntry(store: MemoryStore, d: Draft, ctx: CommandCtx, what: s
     id, kind: d.kind, fromAccountId: d.from?.id ?? null, toAccountId: d.to?.id ?? null, amountPaise: d.amountPaise, date: d.date,
     monthKey: monthKeyOf(d.date), fy: fyOf(d.date), partyName: trimOrEmpty(d.partyName), note: trimOrEmpty(d.note), reference: trimOrEmpty(d.reference),
     narration: entryNarration(d.kind, { from: d.from, to: d.to, partyName: d.partyName, note: d.note, reference: d.reference }),
-    approvalStatus: "approved", enteredByName: userName(store, ctx.uid), ...stampCreate(ctx),
+    approvalStatus: "approved", enteredByName: userName(store, ctx.uid), voucherNo: nextVoucherNo(store, d.date), ...stampCreate(ctx),
   };
   store.set("account_transfers", entry as unknown as Doc);
   const posted = await store.post("account_transfers", id, ctx.nowIso);

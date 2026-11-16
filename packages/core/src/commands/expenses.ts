@@ -5,6 +5,7 @@
  * account row or a balance itself. A posting refusal (a locked month) is thrown, so the whole command is undone.
  * Approval rules are in ../expenses.ts; approve and reject reuse actions.ts.
  */
+import { nextVoucherNo } from "../voucher";
 import { assertMonthOpen, isMonthLocked } from "../accounts";
 import { approveExpense, rejectExpense } from "../actions";
 import { fyOf, isDateStr, monthKeyOf } from "../dates";
@@ -195,7 +196,7 @@ export async function createExpense(store: MemoryStore, input: ExpenseInput & { 
   }
   const limits = limitsOf(store);
   const e: ExpenseRecord = {
-    ...fields, id, tdsPaise: 0, billPaths: [], approvalStatus: "pending", source: "manual", sourceRef: null, voucherNo: null,
+    ...fields, id, tdsPaise: 0, billPaths: [], approvalStatus: "pending", source: "manual", sourceRef: null, voucherNo: nextVoucherNo(store, fields.date),
     enteredBy: ctx.uid, enteredByName: nameOf(store, ctx.uid), creditPurchase: fields.mode === "credit", paidDate: null,
     searchKeywords: expenseSearchKeywords(fields), history: [historyLine(store, ctx, "created")], ...stampCreate(ctx),
   };
@@ -471,7 +472,7 @@ export async function runRecurringExpenses(store: MemoryStore, ctx: CommandCtx):
         break;
       }
       const e: ExpenseRecord = {
-        ...fields, id, tdsPaise: 0, billPaths: [], approvalStatus: "pending", source: "manual", sourceRef: null, voucherNo: null,
+        ...fields, id, tdsPaise: 0, billPaths: [], approvalStatus: "pending", source: "manual", sourceRef: null, voucherNo: nextVoucherNo(store, fields.date),
         enteredBy: "system", enteredByName: `Recurring: ${t.name}`, creditPurchase: fields.mode === "credit", paidDate: null, templateId: t.id, recurringFor: due,
         searchKeywords: expenseSearchKeywords(fields), history: [{ at: ctx.nowIso, by: "system", byName: `Recurring: ${t.name}`, action: "created" }],
         createdBy: "system", createdAt: ctx.nowIso, updatedBy: "system", updatedAt: ctx.nowIso, isDeleted: false,
