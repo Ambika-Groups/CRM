@@ -43,4 +43,6 @@ export * from "./documents";
 export * from "./commands/documents";
 export * from "./billing";
 export * from "./commands/billing";
+export * from "./admin";
+export * from "./commands/admin";
 // </core:exports>

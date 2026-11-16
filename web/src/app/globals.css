@@ -12,6 +12,7 @@
 @import "../styles/spendings.css";
 @import "../styles/documents.css";
 @import "../styles/billing.css";
+@import "../styles/admin.css";
 
 /* Tailwind theme mapped onto the tokens. Prefixed "ag-" so no utility name shadows a token variable. */
 @theme inline {

@@ -21,6 +21,7 @@ import { loadSample, removeSample, sampleStatus } from "./sample";
 import {
   appCheckEnforced, clearIntegration, ReauthRequired, recordBrowserTest, recordOutcome, requireSuperUser, rotateWebsiteKey, saveIntegration, serverChecks, testIntegration,
 } from "./setup";
+import { setStaffPassword, usageCounts } from "./staff";
 import { filesConfig, filesPresign, isStorageTest, testStorage } from "./storage";
 
 /** What a verified sign-in token tells us. */
@@ -125,6 +126,10 @@ export const ACTIONS: Record<string, Action> = {
     await recordOutcome(db, "push", outcome, (now?.() ?? new Date()).toISOString());
     return outcome;
   },
+
+  // ---------- staff accounts and usage (owner) ----------
+  setStaffPassword: (who, data, { db, auth, now }) => setStaffPassword(db, auth, who, data, now),
+  usageCounts: (who, _data, { db, now }) => usageCounts(db, who, now),
 
   /** Sample data for an empty project (super user, on purpose only). action: status, load or remove. */
   async sampleData(who, data, { db, now }) {

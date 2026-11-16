@@ -11,6 +11,7 @@ import { EXPENSE_COMMANDS } from "./expenses";
 import { CATEGORY_COMMANDS } from "./categories";
 import { DOCUMENT_COMMANDS } from "./documents";
 import { BILLING_COMMANDS } from "./billing";
+import { ADMIN_COMMANDS } from "./admin";
 // </commands:imports>
 import { createUser, requestRateChange, saveKyc, saveWorker, setAssignment, setRoster, setSuperUser, setUserActive, setUserRole, updateSettings } from "./people";
 import {
@@ -53,6 +54,7 @@ export const COMMANDS = {
   ...CATEGORY_COMMANDS,
   ...DOCUMENT_COMMANDS,
   ...BILLING_COMMANDS,
+  ...ADMIN_COMMANDS,
   // </commands:maps>
 } satisfies Record<string, CommandFn>;
 

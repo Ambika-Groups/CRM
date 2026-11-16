@@ -12,10 +12,10 @@
  *  - After the commit, sign-in claims (role and projects) are re-synced for anyone whose role, status or
  *    assignments changed (D-05), and a newly added person gets their sign-in account.
  */
-import { Timestamp, type DocumentData, type Firestore, type Query, type Transaction } from "firebase-admin/firestore";
+import { FieldValue, Timestamp, type DocumentData, type Firestore, type Query, type Transaction } from "firebase-admin/firestore";
 import type { Auth } from "firebase-admin/auth";
 import {
-  CommandError, COMMANDS, claimsFor, runWithLoads, usersToResync,
+  CommandError, COMMANDS, claimsFor, runWithLoads, todayIST, usersToResync,
   type CommandName, type Doc, type JournalEntry, type Loaded, type Loader, type LoadPlan, type ListNeed, type User,
 } from "@ag/core";
 
@@ -127,6 +127,8 @@ export async function executeCommand(db: Firestore, auth: Auth, req: CommandRequ
     const { result, changes } = await runWithLoads(new TxLoader(db, tx), name, req.args as never, ctx);
     if (changes.length > MAX_WRITES) throw new CommandError("This changes too many records at once. Do it in smaller parts.");
     writeChanges(db, tx, changes);
+    // The usage meter (D-51): how many records the server wrote today (the request record and this counter included).
+    tx.set(db.doc(`usage_daily/${todayIST(now())}`), { writes: FieldValue.increment(changes.length + 2) }, { merge: true });
     tx.set(reqRef, { uid: req.uid, name, at: nowIso, result: (result ?? null) as unknown, expireAt: Timestamp.fromMillis(now().getTime() + REQUEST_KEEP_DAYS * 86_400_000) });
     return { replayed: false as const, result: (result ?? null) as unknown, changes };
   });

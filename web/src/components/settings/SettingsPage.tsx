@@ -3,6 +3,7 @@ import { DEFAULT_FORMATS, formatDocNumber, fyOf, ROLE_LABELS, ROLES, todayIST, t
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { StaffAccountsPanel } from "@/components/admin/StaffAccountsPanel";
 import { NoAccess } from "@/components/ModulePage";
 import { AppShell } from "@/components/shell/AppShell";
 import { Icon } from "@/components/shell/Icon";
@@ -42,6 +43,13 @@ export function SettingsPage() {
           <Link className="btn btn-secondary" href="/settings/setup/">{t("setup.title")}</Link>
         </section>
       )}
+      {session?.role === "owner" && (
+        <section className="card setup-link" data-admin-links>
+          <div><h2 className="card-title">{t("admin.tools.title")}</h2><p className="muted">{t("admin.backup.hint")}</p></div>
+          <Link className="btn btn-secondary" href="/settings/data/">{t("admin.tools.title")}</Link>
+        </section>
+      )}
+      <p className="section"><Link href="/settings/audit/" data-audit-link>{t("admin.audit.title")}</Link></p>
       <nav className="tabs" aria-label={title}>
         {TABS.map((x) => (
           <a key={x} href={`?tab=${x}`} aria-current={tab === x ? "page" : undefined} onClick={(e) => { e.preventDefault(); setTab(x); setParam("tab", x); }}>{t(`settings.${x}`)}</a>
@@ -138,26 +146,7 @@ function UsersTab({ canWrite }: { canWrite: boolean }) {
           </table></MiniWrap>
         )}
       </section>
-      {canWrite && (
-        <form className="card section" noValidate onSubmit={(e) => {
-          e.preventDefault();
-          void f.submit(async (x) => {
-            const email = x.contact.includes("@") ? x.contact : undefined;
-            await run("createUser", { name: x.name, email, phone: email ? undefined : x.contact, role: x.role as Role });
-            toast(t("settings.userAdded"));
-            f.setAll({ name: "", contact: "", role: "supervisor" });
-          });
-        }}>
-          <h2 className="card-title">{t("settings.addUser")}</h2>
-          <ErrorSummary summary={f.summary} errors={f.errors} />
-          <div className="form-grid two" style={{ marginTop: "var(--space-4)" }}>
-            <TextField label={t("settings.userName")} value={f.values.name} onChange={(v) => f.set("name", v)} error={f.errors.name} required />
-            <TextField label={t("settings.userContact")} value={f.values.contact} onChange={(v) => f.set("contact", v)} error={f.errors.email ?? f.errors.phone} />
-            <SelectField label={t("settings.userRole")} value={f.values.role} onChange={(v) => f.set("role", v)} options={roleOptions} error={f.errors.role} />
-          </div>
-          <div className="form-actions"><Button variant="primary" type="submit" disabled={f.submitting}><Icon name="plus" />{t("settings.addUser")}</Button></div>
-        </form>
-      )}
+      {canWrite && <StaffAccountsPanel />}
     </>
   );
 }

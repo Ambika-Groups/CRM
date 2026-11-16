@@ -1,4 +1,5 @@
 "use client";
+import { staffLoginEmail } from "@ag/core";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "@/components/shell/Icon";
@@ -104,7 +105,7 @@ function SignedOut({ auth, initialError, finishLink, providersOff }: { auth: Aut
         <p>{t("signin.link.confirmBody")}</p>
         <ErrorLine code={shown} />
         <form onSubmit={(e) => { e.preventDefault(); void a.run(() => auth.finishEmailLink(email)); }} noValidate>
-          <TextField label={t("signin.email")} value={email} onChange={setEmail} type="email" inputMode="email" autoComplete="username" />
+          <TextField label={creating ? t("signin.email") : t("signin.emailOrMobile")} value={email} onChange={setEmail} type={creating ? "email" : "text"} inputMode="email" autoComplete="username" />
           <Button variant="primary" type="submit" block disabled={a.busy || !email}>{t("signin.link.confirmButton")}</Button>
         </form>
       </>
@@ -117,7 +118,7 @@ function SignedOut({ auth, initialError, finishLink, providersOff }: { auth: Aut
       <p className="muted">{t("signin.sub")}</p>
       {providersOff && <div className="banner info" role="note" data-providers-off><Icon name="info" /><span className="text">{t("signin.providersOff")}</span></div>}
       <ErrorLine code={shown} />
-      <form onSubmit={(e) => { e.preventDefault(); void a.run(async () => { if (creating) await auth.createAccount(email, password); else await auth.emailSignIn(email, password); }); }} noValidate>
+      <form onSubmit={(e) => { e.preventDefault(); void a.run(async () => { if (creating) await auth.createAccount(email, password); else await auth.emailSignIn(staffLoginEmail(email) ?? email, password); }); }} noValidate>
         <TextField label={t("signin.email")} value={email} onChange={setEmail} type="email" inputMode="email" autoComplete="username" />
         <TextField label={creating ? t("signin.create.password") : t("signin.password")} hint={creating ? t("signin.create.hint") : undefined} value={password} onChange={setPassword} type="password"
           autoComplete={creating ? "new-password" : "current-password"} />

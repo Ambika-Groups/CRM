@@ -213,7 +213,8 @@ service cloud.firestore {
 
     match /settings/{docId} {
       allow read: if (docId in ['company', 'operations'] && signedIn())
-        || (docId in ['bank', 'templates', 'numbering', 'deductionHeads'] && hasRole(['owner', 'accountant', 'ca']));
+        || (docId in ['bank', 'templates', 'numbering', 'deductionHeads'] && hasRole(['owner', 'accountant', 'ca']))
+        || (docId == 'backup' && isOwner());
       allow create, update: if isOwner()
         || (isFinance() && docId in ['bank', 'templates']);
       allow delete: if false;
@@ -562,6 +563,12 @@ service cloud.firestore {
     // What each client owes: written only by posting (D-07); read by the finance roles, as core canRead says.
     match /client_balances/{id} {
       allow read: if isFinanceReader();
+      allow write: if false;
+    }
+
+    // How many saves the server made each day (the usage meter, D-51). Written by the server only.
+    match /usage_daily/{day} {
+      allow read: if isOwner();
       allow write: if false;
     }
 

@@ -21,7 +21,7 @@ export const en = {
   },
   signin: {
     title: "Sign in", sub: "Use the account your company gave you.", google: "Continue with Google", or: "or sign in with email", orElse: "or use another way",
-    email: "Email", password: "Password", signIn: "Sign in", signingIn: "Signing in…",
+    email: "Email", emailOrMobile: "Email or mobile number", password: "Password", signIn: "Sign in", signingIn: "Signing in…",
     forgot: "Forgot your password? Email me a reset link", linkSent: "If this email has an account, a link to set your password is on its way.",
     phoneToggle: "Use your phone number instead", phone: "Mobile number", phoneHint: "10 digits. We text you a 6-digit code.", sendCode: "Send code",
     code: "6-digit code", verify: "Verify and sign in", codeSent: "Code sent. It can take a minute.", newCode: "Send a new code",
