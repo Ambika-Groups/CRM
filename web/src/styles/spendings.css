@@ -1,0 +1,83 @@
+/* Total spendings and expense heads (spec §7.1, §7.3). Only what the shared styles don't already give; colours and
+   sizes come from the tokens, so both themes work without a second set of rules. Corners stay square. */
+
+/* Filters: the dashboard's period bar, with selects that fit a phone. */
+.sp-filters .filter-inline { flex-wrap: wrap; }
+.sp-filters .input { min-height: 40px; width: auto; max-width: min(100%, 240px); }
+.sp-filters .period-custom { flex-wrap: wrap; }
+
+/* The big total. */
+.sp-total { margin-bottom: var(--space-4); border-left: var(--accent-bar, 4px) solid var(--color-brand); }
+.sp-total .value { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.sp-total .hint { margin-top: var(--space-2); }
+
+/* Summary heads: All, Labour, Materials, Commission, Machinery, Other. */
+.sp-heads { display: grid; gap: var(--space-2); grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin: var(--space-4) 0 var(--space-6); }
+.sp-heads button { display: grid; gap: 2px; justify-items: start; text-align: left; min-height: var(--tap-min-phone, 48px); padding: var(--space-3);
+  border: 1px solid var(--color-divider); border-bottom: var(--accent-bar, 4px) solid transparent; background: var(--color-surface); color: var(--color-text); font: inherit; cursor: pointer; min-width: 0; }
+.sp-heads button:hover { background: var(--color-page); }
+.sp-heads button[aria-pressed="true"] { background: var(--color-selected); border-bottom-color: var(--color-brand); }
+.sp-head-name { font-size: var(--text-small); color: var(--color-text-secondary); }
+.sp-heads button[aria-pressed="true"] .sp-head-name { color: var(--color-brand); font-weight: var(--weight-label); }
+.sp-head-amt { font-weight: var(--weight-heading); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.sp-head-pct { font-size: var(--text-small); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+
+/* Chart beside the tree on a wide screen, above it on a phone. */
+.sp-grid { display: grid; gap: var(--space-4); align-items: start; }
+@media (min-width: 1024px) { .sp-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.sp-path { margin-bottom: var(--space-3); font-size: var(--text-small); overflow-wrap: anywhere; }
+.sp-path .link-btn { min-height: 32px; }
+.sp-path .link-btn[aria-current="page"] { color: var(--color-text); text-decoration: none; font-weight: var(--weight-label); cursor: default; }
+.sp-h3 { margin: var(--space-6) 0 var(--space-2); font-size: var(--text-body); font-weight: var(--weight-label); }
+
+/* Bars: one colour (it is one measure), the name and the figures in ink, the bar underneath. */
+.sp-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.sp-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 2px var(--space-3); align-items: baseline; width: 100%; padding: var(--space-2);
+  border: 0; background: none; color: var(--color-text); font: inherit; text-align: left; min-width: 0; }
+button.sp-bar { cursor: pointer; min-height: var(--tap-min-phone, 48px); }
+button.sp-bar:hover, .sp-bar:hover { background: var(--color-page); }
+button.sp-bar .sp-bar-name { text-decoration: underline; }
+.sp-bar-name { overflow-wrap: anywhere; }
+.sp-bar-amt { font-variant-numeric: tabular-nums; font-weight: var(--weight-label); white-space: nowrap; }
+.sp-bar-pct { min-width: 52px; text-align: right; font-size: var(--text-small); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.sp-bar-track { grid-column: 1 / -1; height: 10px; background: var(--chart-grid); }
+.sp-bar-track > span { display: block; height: 100%; min-width: 2px; background: var(--chart-1); }
+.sp-months .sp-bar { grid-template-columns: minmax(0, 1fr) auto; }
+.sp-months .sp-bar-track > span { min-width: 0; }
+
+/* The tree: name, amount, share; heads under a head are indented. */
+.sp-tree ul { list-style: none; margin: 0; padding: 0; }
+.sp-tree ul ul { padding-left: var(--space-4); border-left: 1px solid var(--color-divider); margin-left: var(--space-2); }
+.sp-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 64px; gap: var(--space-3); align-items: start; padding: var(--space-2) 0; border-top: 1px solid var(--color-divider); }
+.sp-row[data-current="true"] { background: var(--color-selected); }
+.sp-row-head { border-top: 0; font-size: var(--text-small); color: var(--color-text-secondary); }
+.sp-row-name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); min-width: 0; }
+.sp-toggle { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 40px; padding: 0; border: 0; background: none; color: var(--color-text); font: inherit;
+  font-weight: var(--weight-label); text-align: left; cursor: pointer; min-width: 0; overflow-wrap: anywhere; }
+.sp-toggle .icon { flex: none; }
+.sp-leaf { display: inline-flex; align-items: center; min-height: 40px; padding-left: 20px; overflow-wrap: anywhere; }
+.sp-entries { font-size: var(--text-small); text-decoration: underline; color: var(--color-link, var(--color-brand)); }
+.sp-amt { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; line-height: 40px; }
+.sp-pct { font-variant-numeric: tabular-nums; text-align: right; font-size: var(--text-small); color: var(--color-text-secondary); line-height: 40px; }
+.sp-row-head .sp-amt, .sp-row-head .sp-pct { line-height: inherit; }
+@media (max-width: 479px) {
+  .sp-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .sp-row .sp-pct { grid-column: 2; line-height: inherit; margin-top: -8px; }
+  .sp-row-head .sp-pct { display: none; }
+  .sp-tree ul ul { padding-left: var(--space-2); margin-left: var(--space-1); }
+}
+
+/* Expense heads editor. */
+.cat-actions { position: sticky; top: var(--space-2); z-index: 2; display: grid; gap: var(--space-3); margin-bottom: var(--space-4); }
+.cat-selected { overflow-wrap: anywhere; }
+.cat-tree ul { list-style: none; margin: 0; padding: 0; }
+.cat-tree ul ul { padding-left: var(--space-4); border-left: 1px solid var(--color-divider); margin-left: var(--space-2); }
+.cat-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); width: 100%; min-height: var(--tap-min-phone, 48px); padding: var(--space-2);
+  border: 0; border-top: 1px solid var(--color-divider); background: none; color: var(--color-text); font: inherit; text-align: left; min-width: 0; }
+button.cat-row { cursor: pointer; }
+button.cat-row:hover { background: var(--color-page); }
+button.cat-row[aria-pressed="true"] { background: var(--color-selected); box-shadow: inset var(--accent-bar, 4px) 0 0 var(--color-brand); }
+.cat-name { font-weight: var(--weight-label); overflow-wrap: anywhere; }
+.cat-other { font-size: var(--text-small); color: var(--color-text-secondary); overflow-wrap: anywhere; }
+li[data-active="false"] > .cat-row .cat-name { color: var(--color-text-secondary); }
+@media (max-width: 479px) { .cat-tree ul ul { padding-left: var(--space-2); margin-left: var(--space-1); } }

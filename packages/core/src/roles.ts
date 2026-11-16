@@ -168,6 +168,8 @@ export function canRead(collection: string, doc: Record<string, unknown>, c: Ctx
       return fin || (r === "pm" && doc.requestedBy === c.uid);
     case "rollups":
       return readsTotals(r) || (r === "pm" && doc.scope === "project" && assigned(doc.projectId));
+    case "category_moves":
+      return r === "owner";
     case "files":
     case "file_blobs":
       // Photos and documents (core/files.ts): by kind and project; ID proofs and signatures finance only (D-22).

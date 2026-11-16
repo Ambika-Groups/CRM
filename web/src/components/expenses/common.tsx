@@ -1,6 +1,7 @@
 "use client";
 // Pieces shared by the expense screens (spec §7.2): the limits from Settings, the category tree and its cascading
 // picker, project lists by role, status badges and the tabs across the expense pages.
+import { useSpendingsTabs } from "@/components/spendings/tabs";
 import {
   CategoryTree, expenseLimits, isFinanceRole, isUnpaidCredit, seedCategories,
   type Category, type ExpenseLimits, type ExpenseRecord, type Project, type Vendor,
@@ -133,11 +134,12 @@ export function ExpenseTabs({ current, extra = [] }: { current: "all" | "approva
   const { t } = useTranslation();
   const session = useSession();
   const role = session?.role;
+  const more = useSpendingsTabs();
   const tabs = [
     { key: "all", href: "/expenses/", label: t("expenses.tabs.all"), show: true },
     { key: "approvals", href: "/expenses/approvals/", label: t("expenses.tabs.approvals"), show: role === "owner" || role === "accountant" || role === "pm" },
     { key: "recurring", href: "/expenses/recurring/", label: t("expenses.tabs.recurring"), show: role === "owner" || role === "accountant" },
-    ...extra.map((x) => ({ ...x, show: true })),
+    ...[...more.filter((m) => !extra.some((x) => x.key === m.key)), ...extra].map((x) => ({ ...x, show: true })),
   ].filter((x) => x.show);
   if (tabs.length < 2) return null;
   return (

@@ -56,7 +56,7 @@ export function ExpensesPage() {
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     const init: Partial<Filters> = {};
-    for (const k of ["project", "category", "status", "paid"] as const) { const v = q.get(`f.${k}`); if (v) init[k] = v; }
+    for (const k of ["project", "category", "status", "paid", "from", "to"] as const) { const v = q.get(`f.${k}`); if (v) init[k] = v; }
     if (Object.keys(init).length) setFl((f) => ({ ...f, ...init }));
   }, []);
 

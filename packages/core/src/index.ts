@@ -36,4 +36,6 @@ export * from "./commands/accounts";
 export * from "./exportCsv";
 export * from "./expenses";
 export * from "./commands/expenses";
+export * from "./spendings";
+export * from "./commands/categories";
 // </core:exports>

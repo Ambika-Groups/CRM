@@ -8,6 +8,7 @@ import type { CommandFn } from "./common";
 // <commands:imports> one line per feature (lane lead only, append only)
 import { ACCOUNT_COMMANDS } from "./accounts";
 import { EXPENSE_COMMANDS } from "./expenses";
+import { CATEGORY_COMMANDS } from "./categories";
 // </commands:imports>
 import { createUser, requestRateChange, saveKyc, saveWorker, setAssignment, setRoster, setSuperUser, setUserActive, setUserRole, updateSettings } from "./people";
 import {
@@ -47,6 +48,7 @@ export const COMMANDS = {
   // <commands:maps> one spread per feature, for example ...EXPENSE_COMMANDS (lane lead only, append only)
   ...ACCOUNT_COMMANDS,
   ...EXPENSE_COMMANDS,
+  ...CATEGORY_COMMANDS,
   // </commands:maps>
 } satisfies Record<string, CommandFn>;
 
