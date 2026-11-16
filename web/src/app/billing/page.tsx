@@ -1,7 +1,7 @@
-import { ModulePage } from "@/components/ModulePage";
+import { BillingPage } from "@/components/billing/BillingPage";
 
 export const metadata = { title: "Quotes & bills" };
 
 export default function Page() {
-  return <ModulePage navKey="billing" />;
+  return <BillingPage tab="invoices" />;
 }

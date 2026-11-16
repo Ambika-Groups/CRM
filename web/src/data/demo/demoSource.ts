@@ -22,7 +22,7 @@ function demoLanguage(): "en" | "hi" | null {
   try { const v = localStorage.getItem("ag-demo-lang"); return v === "hi" || v === "en" ? v : null; } catch { return null; }
 }
 
-export const DEMO_SEED_VERSION = 8;
+export const DEMO_SEED_VERSION = 9;
 
 /** Map a collection path to the key the role matrix uses. */
 function matrixKey(collection: string, id: string): string {

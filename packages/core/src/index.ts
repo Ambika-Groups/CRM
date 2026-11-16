@@ -41,4 +41,6 @@ export * from "./spendings";
 export * from "./commands/categories";
 export * from "./documents";
 export * from "./commands/documents";
+export * from "./billing";
+export * from "./commands/billing";
 // </core:exports>

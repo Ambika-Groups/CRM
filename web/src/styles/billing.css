@@ -1,0 +1,46 @@
+/* Quotation and bill screens (spec §8.2, §8.3). Only what the shared styles don't already give; colours and sizes come
+   from the tokens, so both themes work without a second set of rules. */
+
+.bill-badges { display: inline-flex; flex-wrap: wrap; gap: var(--space-1); }
+
+/* Lines editor: one card per line, each field with its label. Two fields a row on a phone, more when there is room. */
+.bill-items { display: grid; gap: var(--space-3); }
+fieldset.bill-item { position: relative; margin: 0; min-width: 0; padding: var(--space-3) var(--space-4) var(--space-4); border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm, 0); background: var(--color-page); display: grid; gap: var(--space-3); }
+fieldset.bill-item > legend { padding: 0 var(--space-2); font-size: var(--text-small); font-weight: var(--weight-label); color: var(--color-text-secondary); max-width: calc(100% - 56px); overflow-wrap: anywhere; }
+.bill-item-remove { position: absolute; top: 0; right: var(--space-1); }
+.bill-item-wide { padding-right: 44px; min-width: 0; }
+.bill-item-grid { display: grid; gap: var(--space-3); grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+@media (min-width: 768px) { .bill-item-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.bill-item-grid .input, .bill-item-wide .input { min-width: 0; width: 100%; }
+.bill-item-grid .input-affix .input { width: auto; flex: 1 1 0; }
+.bill-item-amount { display: grid; gap: var(--space-1); align-content: start; font-size: var(--text-small); color: var(--color-text-secondary); min-width: 0; }
+.bill-item-amount b { color: var(--color-text); font-size: var(--text-body); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.bill-items-add { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.bill-common { flex: 1 1 220px; min-width: 0; max-width: 360px; }
+.bill-common .input { width: 100%; }
+
+/* Totals, the running-bill carry-forward and the money still to come. */
+.bill-totals, .bill-ra { max-width: 460px; padding: var(--space-3) var(--space-4); border: 1px solid var(--color-divider); border-radius: var(--radius-sm, 0); background: var(--color-page); }
+.bill-totals dd, .bill-ra dd, .bill-money dd { overflow-wrap: anywhere; }
+.bill-words { margin: var(--space-3) 0 0; font-size: var(--text-small); overflow-wrap: anywhere; }
+.bill-ra { margin-top: var(--space-3); display: grid; gap: var(--space-2); }
+.bill-money { max-width: 460px; margin-top: var(--space-3); padding: 0 var(--space-4); }
+
+/* Detail pages. */
+.bill-detail-grid { display: grid; gap: var(--space-4); align-items: start; margin-top: var(--space-4); }
+@media (min-width: 1024px) { .bill-detail-grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } .bill-detail-grid .bill-wide { grid-column: 1 / -1; } }
+.bill-kv { grid-template-columns: 1fr; gap: 0; }
+.bill-kv-row { display: grid; grid-template-columns: minmax(110px, 2fr) minmax(0, 3fr); gap: var(--space-3); padding: var(--space-2) 0; border-top: 1px solid var(--color-divider); }
+.bill-kv-row:first-child { border-top: 0; }
+.bill-kv-row dd { text-align: left; overflow-wrap: anywhere; }
+table.data tr.bill-section td { font-weight: var(--weight-label); color: var(--color-text-secondary); background: var(--color-page); }
+@media (max-width: 599px) { table.data tbody + tbody { margin-top: var(--space-2); } table.data tr.bill-section { border: 0; background: none; padding: var(--space-2) 0 0; } }
+.bill-links { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.bill-links li { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; padding: var(--space-2) 0; border-top: 1px solid var(--color-divider); }
+.bill-links li:first-child { border-top: 0; }
+.bill-links li > span:not(.badge):not(.bill-badges) { color: var(--color-text-secondary); font-size: var(--text-small); margin-right: auto; }
+.bill-texts { display: grid; gap: var(--space-4); }
+@media (min-width: 1024px) { .bill-texts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.bill-texts h3 { margin: 0 0 var(--space-1); font-size: var(--text-body); font-weight: var(--weight-label); }
+.bill-texts p { margin: 0 0 var(--space-1); overflow-wrap: anywhere; }
