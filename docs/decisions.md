@@ -608,3 +608,23 @@ A scheduled function flags any `billPaths` entry whose file hasn't arrived 48 ho
 ### D-51 addendum: TTL is not available on Spark (2026-11-16)
 
 Confirmed by a failed deploy ("billing disabled" on the TTL field override of `command_requests.expireAt`). The TTL override is removed from firestore.indexes.json. Expired request records are deleted by the nightly clean-up (Netlify scheduled function, with a catch-up when the owner opens the app). Nothing in the app depends on TTL for correctness: a request record only makes a retried command safe, and an old one is harmless.
+
+### D-53: what the night build of 16 Nov 2026 settled (Lane A)
+
+- **Server transport.** The Netlify function uses the Admin SDK's default transport (gRPC). The REST option (`preferRest`) was tried for a quicker first call; against the emulator it failed the first server test and ran out of memory, while every test passes on the default. Proven beats quicker.
+- **New ids repeat within one command.** The server runs a command several times while it loads what the command reads. Each run now takes its new ids from one seeded sequence (`withIdSource`, `seededIds`), so a rerun asks only for what is really missing. Before this, any command that posts money asked for a new `postings/...` record on every rerun and never finished on a real database. Tests SV-13, SV-14, and the emulator tests in CI.
+- **Emulator tests count only when seen green.** CI's emulator job (rules, server, end to end) is read through GitHub's public API; a rules or server claim is "tested" only for a commit whose job is green. The same tests can run on a developer machine with a portable Java runtime; nothing is installed.
+- **Cache-first reads.** Something read from the server is trusted for five minutes; a save returns the collections it changed and only those are read again (`FreshMap`). The person's own language and theme still come live from their user record.
+- **Language.** The person's own record decides the language. It is applied after React has taken over the page (no hydration error). A device preference only matters before sign-in.
+- **Files.** One interface (`FilesApi`, `FileAttach`); the default store keeps compressed pictures in the database (700,000 bytes at most); Cloudflare R2 and Cloudinary are optional providers; ID proofs and signatures never leave the built-in store.
+- **Generated expenses that pay for themselves.** An expense generated from diesel, a repair or a bank charge has no payment record of its own, so it carries the paid-from account and moves it (the same rule in both lanes). Wages, purchases and machine rent are paid by their own records (D-16 unchanged).
+
+### D-54 (proposed, not built): short voucher numbers
+
+PRD 11A.2 asks for "Voucher No (auto)". Today a new entry's voucher reference is made from its record id (`EXP-s6Dj...`), which a CA cannot read out. Proposal, the smallest design that still works offline and keeps numbering on the server (D-12):
+
+- When the server saves an expense, transfer or other money entry it gives it the next number of its series and financial year from the existing counters: `EXP/26-27/0042`, `TRF/26-27/0007`, `JV/26-27/0003`. These are internal vouchers, not GST documents, so a gap left by a rejected entry is allowed and the series only has to be unique and in order.
+- An entry still waiting on a phone has no number yet; screens show "not numbered yet" and the master CSV leaves it out until it is saved.
+- The long id stays the record's key; nothing that exists is renumbered, older entries keep their reference.
+- Cost: one extra counter write per entry (already paid by invoices and worker payments).
+Needs the user's yes on the formats before it is built.
