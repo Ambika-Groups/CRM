@@ -30,6 +30,17 @@ if (!i18n.isInitialized) {
   });
 }
 
+// The page arrives from the server in English. The language may only change once React has taken over that page
+// (hydration); changing it earlier makes the first client render differ from the server's and React reports an error.
+let markHydrated: () => void = () => {};
+const hydrated = new Promise<void>((resolve) => { markHydrated = resolve; });
+/** Called once by Providers when the first render has been committed. */
+export function i18nHydrated() {
+  // A moment later, so parts of the page that hydrate a little after the first commit are done too. A timer, not an
+  // animation frame: frames do not run in a tab that is in the background.
+  setTimeout(markHydrated, 60);
+}
+
 let hindi: Promise<void> | null = null;
 function ensureHindi(): Promise<void> {
   hindi ??= Promise.all([import("./strings-hi"), import("./features/index-hi")]).then(([m, f]) => { i18n.addResourceBundle("hi", "translation", { ...m.hi, ...f.featureHi }, true, true); });
@@ -40,7 +51,7 @@ export function setLang(lang: Lang) {
   try { localStorage.setItem(STORAGE_KEY, lang); } catch { /* private mode */ }
   document.documentElement.lang = lang;
   // The language switches when its strings have arrived, so nothing flashes half translated.
-  void (lang === "hi" ? ensureHindi() : Promise.resolve()).then(() => i18n.changeLanguage(lang));
+  void Promise.all([lang === "hi" ? ensureHindi() : Promise.resolve(), hydrated]).then(() => i18n.changeLanguage(lang)).then(() => { document.documentElement.dataset.lang = lang; });
 }
 
 export default i18n;

@@ -143,7 +143,7 @@ export function firstOwnerDocs(owner: { uid: string; name: string; email: string
   const out: { collection: string; doc: Doc }[] = [
     { collection: "users", doc: { id: owner.uid, name: owner.name || owner.email, email: owner.email, phone: "", role: "owner", superUser: true, active: true, language: "en", theme: "system", projectIds: [], ...stamp } },
     { collection: "settings", doc: {
-      id: "company", legalName: "Ambika Group [legal name to be confirmed]", tradeName: "Ambika Group", address: "", stateCode: "09",
+      id: "company", legalName: "Ambika Groups [legal name to be confirmed]", tradeName: "Ambika Groups", address: "", stateCode: "09",
       gstin: "", pan: "", phone: "", email: owner.email, brandColor: "#F12136", gstScheme: "regular", logoPath: null, signaturePath: null, stampPath: null, ...stamp,
     } },
     { collection: "settings", doc: { id: "bank", accounts: [], ...stamp } },

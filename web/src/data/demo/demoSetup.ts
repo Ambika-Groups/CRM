@@ -86,5 +86,5 @@ export class DemoSetup implements SetupApi {
   }
 
   configInUse() { return { from: "none" as const, config: {} }; }
-  enquiryEndpoint() { return "https://asia-south1-YOUR-PROJECT.cloudfunctions.net/submitEnquiry"; }
+  enquiryEndpoint() { return "https://YOUR-CRM-SITE.netlify.app/.netlify/functions/enquiry"; }
 }

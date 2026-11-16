@@ -17,6 +17,11 @@ const STORE = "snapshot";
 const KEY = "v1";
 const SESSION_KEY = "ag-demo-uid";
 /** Bump when the seed changes shape, so browsers reseed. */
+/** Demo only (like ag-demo-uid): the browser checks (tools/ui-check.mjs) pick the language of the demo person with this key. */
+function demoLanguage(): "en" | "hi" | null {
+  try { const v = localStorage.getItem("ag-demo-lang"); return v === "hi" || v === "en" ? v : null; } catch { return null; }
+}
+
 export const DEMO_SEED_VERSION = 8;
 
 /** Map a collection path to the key the role matrix uses. */
@@ -81,7 +86,7 @@ export class DemoSource implements DataSource {
   session(): Session | null {
     const u = this.uid ? this.store.get<User>("users", this.uid) : null;
     if (!u) return null;
-    return { uid: u.id, name: u.name, role: u.role, projectIds: u.projectIds ?? [], language: u.language, theme: u.theme, superUser: u.role === "owner" && u.superUser === true };
+    return { uid: u.id, name: u.name, role: u.role, projectIds: u.projectIds ?? [], language: demoLanguage() ?? u.language, theme: u.theme, superUser: u.role === "owner" && u.superUser === true };
   }
 
   subscribe(fn: () => void): () => void {

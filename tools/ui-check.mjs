@@ -109,6 +109,10 @@ try {
     await cdp.send("Page.enable");
     await cdp.send("Runtime.enable");
     const failed = [];
+    // Errors the page itself throws or reports (for example a React hydration error): a job with any of these fails.
+    const pageErrors = [];
+    cdp.on("Runtime.exceptionThrown", (e) => pageErrors.push(String(e.exceptionDetails?.exception?.description ?? e.exceptionDetails?.text ?? "error").slice(0, 200)));
+    cdp.on("Runtime.consoleAPICalled", (e) => { if (e.type === "error") { const t = (e.args ?? []).map((a) => a.value ?? a.description ?? "").join(" "); if (/Minified React error|Hydration failed|hydrat/i.test(t)) pageErrors.push(t.slice(0, 200)); } });
     const mainUrl = `http://127.0.0.1:${PORT}${job.path}`;
     const urls = new Map();
     cdp.on("Network.requestWillBeSent", (e) => urls.set(e.requestId, e.request.url));
@@ -123,7 +127,7 @@ try {
     const mobile = job.width < 600;
     await cdp.send("Emulation.setDeviceMetricsOverride", { width: job.width, height: job.height ?? 900, deviceScaleFactor: 1, mobile });
     await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: job.theme }] });
-    const pre = `try{localStorage.setItem('ag-theme',${JSON.stringify(job.theme)});localStorage.setItem('ag-demo-uid',${JSON.stringify(job.role ?? "uOwner")});localStorage.setItem('ag-lang',${JSON.stringify(job.lang ?? "en")});localStorage.setItem('ag-nav-collapsed',${JSON.stringify(job.collapsed ? "1" : "0")});}catch(e){}`;
+    const pre = `try{localStorage.setItem('ag-theme',${JSON.stringify(job.theme)});localStorage.setItem('ag-demo-uid',${JSON.stringify(job.role ?? "uOwner")});localStorage.setItem('ag-lang',${JSON.stringify(job.lang ?? "en")});${job.lang ? `localStorage.setItem('ag-demo-lang',${JSON.stringify(job.lang)});` : "localStorage.removeItem('ag-demo-lang');"}localStorage.setItem('ag-nav-collapsed',${JSON.stringify(job.collapsed ? "1" : "0")});}catch(e){}`;
     const { identifier } = await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: pre });
     if (job.throttle === "4g") {
       await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
@@ -134,7 +138,7 @@ try {
     await cdp.send("Page.navigate", { url: `http://127.0.0.1:${PORT}${job.path}` });
     let readyMs = null;
     for (let i = 0; i < 160; i++) {
-      if (await evalJs(cdp, "document.documentElement.dataset.ready==='1' && document.fonts.status==='loaded'")) { readyMs = Date.now() - t0; break; }
+      if (await evalJs(cdp, "document.documentElement.dataset.ready==='1' && document.fonts.status==='loaded' && (localStorage.getItem('ag-demo-lang')!=='hi' || document.documentElement.dataset.lang==='hi')")) { readyMs = Date.now() - t0; break; }
       await sleep(125);
     }
     await sleep(250);
@@ -208,10 +212,10 @@ try {
     }
     await cdp.send("Page.removeScriptToEvaluateOnNewDocument", { identifier });
     const serious = axe.filter((v) => v.impact === "serious" || v.impact === "critical");
-    const pass = layout.overflow === false && serious.length === 0 && readyMs !== null && layout.theme === (job.expectTheme ?? job.theme) && jargon.length === 0 && (layout.appShell || job.noShell) && failed.length === 0 && expectResult === true && (job.maxReadyMs == null || (readyMs !== null && readyMs <= job.maxReadyMs));
+    const pass = layout.overflow === false && serious.length === 0 && readyMs !== null && layout.theme === (job.expectTheme ?? job.theme) && jargon.length === 0 && (layout.appShell || job.noShell) && pageErrors.length === 0 && failed.length === 0 && expectResult === true && (job.maxReadyMs == null || (readyMs !== null && readyMs <= job.maxReadyMs));
     if (!pass) failures++;
     report.push({ name: job.name, path: job.path, role: job.role ?? "uOwner", lang: job.lang ?? "en", state: job.state ?? null, width: job.width,
-      theme: job.theme, pass, readyMs, nav, ...layout, jargon, failedRequests: failed, expect: job.expect ? expectResult : null, axe, file });
+      theme: job.theme, pass, readyMs, nav, ...layout, jargon, pageErrors, failedRequests: failed, expect: job.expect ? expectResult : null, axe, file });
     cdp.close();
     await cdpJson(`/json/close/${target.id}`).catch(() => {});
     };
@@ -230,6 +234,8 @@ writeFileSync(join(outDir, "ui-check-raw.json"), JSON.stringify(report, null, 1)
 const byImpact = {};
 for (const r of report) for (const v of r.axe) byImpact[v.impact] = (byImpact[v.impact] ?? 0) + 1;
 console.log(`Jargon hits: ${report.reduce((n, r) => n + r.jargon.length, 0)}`);
+console.log(`Page errors: ${report.reduce((n, r) => n + (r.pageErrors?.length ?? 0), 0)}`);
+for (const r of report.filter((x) => x.pageErrors?.length)) console.log(`  PAGE ERROR ${r.name} ${r.width} ${r.role} ${r.lang}: ${r.pageErrors[0]}`);
 console.log(`Failed requests: ${report.reduce((n, r) => n + r.failedRequests.length, 0)}`);
 console.log(`Interactive checks: ${report.filter((r) => r.expect === true).length} passed of ${report.filter((r) => r.expect !== null).length}`);
 console.log(`UI checks: ${report.length - failures} passed, ${failures} failed (of ${report.length}). axe violations by impact: ${JSON.stringify(byImpact)}`);

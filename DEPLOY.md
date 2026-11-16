@@ -53,6 +53,21 @@ The project uses Firebase's free plan with no payment method (decision D-51, doc
 7. **Cost on Netlify Free:** every **production deploy uses 15 of your 300 monthly credits**, and at zero the site is paused until next month. Deploy previews and branch deploys cost nothing. Publish to production only when you mean to (a few times a month is fine).
 8. **If the build stops saying "secrets scanning found secrets":** Netlify's scanner can mistake the Firebase API key (it starts with `AIza`) inside the site's scripts for a secret. The repository already tells Netlify to skip the six public names (`SECRETS_SCAN_OMIT_KEYS` in `netlify.toml`). If it still stops and names that key, add one more Netlify variable, `SECRETS_SCAN_SMART_DETECTION_OMIT_VALUES`, whose value is the API key itself (not ticked as secret), and deploy again. Do not turn scanning off: it protects the real secret later.
 
+## Connect the server part (saving records)
+
+Reading works as soon as you are signed in. **Saving** (every add, change, approve and delete) goes through the CRM's server part, which runs for free on your Netlify site. It needs one secret from Google, added once. Until then the sign-in screen says "Saving records: the server part ... has no key yet", and every save says plainly that it is not connected.
+
+1. Open the **Google Cloud console** for your project (console.cloud.google.com, choose the project at the top) > **IAM & Admin > Service accounts > Create service account**. Name: `crm-server`. Press Create and continue.
+2. Give it exactly these roles, nothing more: **Cloud Datastore User** (read and write the database) and **Firebase Authentication Admin** (create staff sign-ins, switch a person off). If you will use push notifications later, also **Firebase Cloud Messaging API Admin**. Press Done.
+3. Open the new account > **Keys > Add key > Create new key > JSON**. A file downloads. Open it in Notepad and copy **all** of it.
+4. In **Netlify > Site configuration > Environment variables > Add a variable**: key `FIREBASE_SERVICE_ACCOUNT`, value = the whole text you copied. **Tick "Contains secret values"** (this is the one real secret). If Netlify lets you choose scopes, choose **Functions** only.
+5. Press **Deploys > Trigger deploy > Deploy site** (a variable only reaches the server part on a new deploy; this uses 15 credits).
+6. Check it: open the CRM's sign-in screen. The line must read **"Saving records: the server part is connected."** Then sign in, open **Settings > Setup & integrations** and press **Test** on the server item, and add any record (for example a client) to see it save.
+7. **Delete the downloaded file** from your computer and empty the Recycle Bin. The key now lives only in Netlify. Never put it in the repository, in a chat or in an email.
+
+If your Google account does not allow creating keys (some organisation accounts block it), the console says so at step 3: tell whoever manages the account, or use a personal Google account for the project.
+To replace the key later (for example if you think it leaked): on the service account delete the old key and make a new one (step 3), put the new text into the same Netlify variable, and deploy again.
+
 The numbered steps below are the same work done by hand. Use them if you prefer, or when something needs a second look.
 
 ---

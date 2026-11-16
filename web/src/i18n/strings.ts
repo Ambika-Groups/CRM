@@ -5,7 +5,7 @@
  * native speaker's review (open question I5). Western digits on Hindi screens (brand.md 2.1).
  */
 export const en = {
-  app: { name: "Ambika Group", crm: "Ambika Group CRM", skip: "Skip to content" },
+  app: { name: "Ambika Groups", crm: "Ambika Groups CRM", skip: "Skip to content" },
   nav: {
     home: "Home", projects: "Projects", labour: "Workers & attendance", expenses: "Expenses", procurement: "Purchases & stock",
     clients: "Clients & enquiries", billing: "Quotes & bills", contracts: "Contracts", accounts: "Accounts", calendar: "Calendar & tasks",
@@ -129,7 +129,7 @@ export const en = {
       domains: "Allowed addresses", domainsBody: "The address this site runs on must be listed in Authentication > Settings > Authorized domains. This page is on: {{host}}", netlify: "Also add your Netlify address (the one ending .netlify.app) and your own domain if you have one.",
       methods: "Turned on in the console (can't be read from here): Google, Email/Password, Phone.", smsNote: "Phone codes: in Authentication > Settings > SMS region policy, allow only India (IN) so no SMS goes abroad.",
     },
-    functions: { title: "5. Server functions", desc: "The part of the CRM that runs on Google's servers (posting, numbering, audit). Region asia-south1.", where: "Deployed with: npx firebase-tools deploy --only functions (see DEPLOY.md).", region: "Region: asia-south1 (Mumbai)" },
+    functions: { title: "5. Server part (saving records)", desc: "The part of the CRM that saves every change safely (totals, numbering, the history of who changed what). It runs for free on your Netlify site.", where: "It is deployed with the site. It needs one key from Google, added once in Netlify: see DEPLOY.md, \"Connect the server part\".", region: "Runs on Netlify. Test shows where it answered from." },
     appCheck: {
       title: "6. App Check", desc: "Proves calls come from your real app, not a copy. Uses Google reCAPTCHA v3.", where: "Google reCAPTCHA admin: create a site (type v3) and copy the Site key. Then Firebase console > App Check > register your web app with reCAPTCHA v3.",
       siteKey: "reCAPTCHA site key", siteKeyHint: "Public. 40 characters, starts with 6L.", netlify: "Also add this line in Netlify (Environment variables) so every device uses it: {{line}}",

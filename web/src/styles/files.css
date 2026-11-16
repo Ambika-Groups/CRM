@@ -32,3 +32,8 @@
 .files-check { display: grid; gap: var(--space-4); }
 .files-check .card { display: grid; gap: var(--space-3); }
 .files-check h2 { font-size: var(--text-title-s); line-height: var(--leading-title-s); margin: 0; }
+
+/* Never wider than the form they sit in (a long file name, or the browser's own file button, at phone width). */
+.file-attach, .file-attach input[type="file"], .file-attach .file-list, .file-attach .file-thumbs { max-width: 100%; min-width: 0; }
+.file-attach .file-name { overflow-wrap: anywhere; }
+.file-attach > *, .file-attach-actions > * { max-width: 100%; min-width: 0; }

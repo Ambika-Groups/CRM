@@ -1,7 +1,7 @@
 {
-  "name": "Ambika Group CRM",
+  "name": "Ambika Groups CRM",
   "short_name": "Ambika CRM",
-  "description": "Projects, workers, attendance, expenses, billing and accounts for Ambika Group.",
+  "description": "Projects, workers, attendance, expenses, billing and accounts for Ambika Groups.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

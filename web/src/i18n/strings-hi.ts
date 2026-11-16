@@ -7,7 +7,7 @@ import type { en, Shape } from "./strings";
 
 
 export const hi: Shape<typeof en> = {
-  app: { name: "अंबिका ग्रुप", crm: "अंबिका ग्रुप CRM", skip: "मुख्य हिस्से पर जाएँ" },
+  app: { name: "अंबिका ग्रुप्स", crm: "अंबिका ग्रुप्स CRM", skip: "मुख्य हिस्से पर जाएँ" },
   nav: {
     home: "होम", projects: "प्रोजेक्ट", labour: "मज़दूर और हाज़िरी", expenses: "खर्च", procurement: "ख़रीद और स्टॉक",
     clients: "ग्राहक और पूछताछ", billing: "कोटेशन और बिल", contracts: "अनुबंध", accounts: "हिसाब-किताब", calendar: "कैलेंडर और काम",
@@ -131,7 +131,7 @@ export const hi: Shape<typeof en> = {
       domains: "अनुमति वाले पते", domainsBody: "इस साइट का पता Authentication > Settings > Authorized domains में होना चाहिए। यह पेज यहाँ है: {{host}}", netlify: "अपना Netlify पता (.netlify.app वाला) और अपना डोमेन, अगर हो, वह भी जोड़ें।",
       methods: "कंसोल में चालू (यहाँ से पढ़े नहीं जा सकते): Google, Email/Password, Phone।", smsNote: "फ़ोन कोड: Authentication > Settings > SMS region policy में केवल भारत (IN) की अनुमति दें, ताकि कोई SMS विदेश न जाए।",
     },
-    functions: { title: "5. सर्वर फ़ंक्शन", desc: "CRM का वह हिस्सा जो Google के सर्वर पर चलता है (पोस्टिंग, नंबरिंग, ऑडिट)। क्षेत्र asia-south1।", where: "इससे डिप्लॉय होता है: npx firebase-tools deploy --only functions (DEPLOY.md देखें)।", region: "क्षेत्र: asia-south1 (मुंबई)" },
+    functions: { title: "5. सर्वर हिस्सा (रिकॉर्ड सेव करना)", desc: "CRM का वह हिस्सा जो हर बदलाव सुरक्षित सेव करता है (कुल जोड़, नंबरिंग, किसने क्या बदला इसका इतिहास)। यह आपकी Netlify साइट पर मुफ़्त चलता है।", where: "यह साइट के साथ ही डिप्लॉय होता है। इसे Google की एक चाबी चाहिए, जो Netlify में एक बार जोड़ी जाती है: DEPLOY.md, \"Connect the server part\" देखें।", region: "Netlify पर चलता है। टेस्ट बताता है कि जवाब कहाँ से आया।" },
     appCheck: {
       title: "6. App Check", desc: "साबित करता है कि कॉल आपके असली ऐप से आ रहे हैं, किसी नकल से नहीं। Google reCAPTCHA v3 इस्तेमाल होता है।", where: "Google reCAPTCHA एडमिन: एक साइट (टाइप v3) बनाएँ और Site key कॉपी करें। फिर Firebase कंसोल > App Check > अपना वेब ऐप reCAPTCHA v3 से रजिस्टर करें।",
       siteKey: "reCAPTCHA साइट कुंजी", siteKeyHint: "सार्वजनिक। 40 अक्षर, 6L से शुरू।", netlify: "यह लाइन Netlify (Environment variables) में भी जोड़ें ताकि हर डिवाइस इसे इस्तेमाल करे: {{line}}",

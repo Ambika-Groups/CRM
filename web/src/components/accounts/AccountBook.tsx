@@ -59,6 +59,8 @@ export function AccountBook() {
   const [stack, setStack] = useState<{ after: string | null; start: number | null }[]>([{ after: null, start: null }]);
   useEffect(() => setStack([{ after: null, start: null }]), [id, range.from, range.to, version]);
   const [downloading, setDownloading] = useState(false);
+  // Opened without an account (an address typed by hand): go to the accounts list instead of "not found".
+  useEffect(() => { if (id !== undefined && !id) window.location.replace("/accounts/"); }, [id]);
 
   const balanceNow = account ? balanceOf(account) : 0;
   const edges = useRead(`book-edges:${id}:${range.from}:${range.to}:${balanceNow}`, async (s) => {

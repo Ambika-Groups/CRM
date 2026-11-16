@@ -87,12 +87,12 @@ export async function seedDemo(anchor: string): Promise<{ store: MemoryStore; su
 
   // ---------- settings (company details are placeholders, open questions B1–B4) ----------
   put(store, "settings", {
-    id: "company", legalName: "Ambika Group [legal name to be confirmed]", tradeName: "Ambika Group",
+    id: "company", legalName: "Ambika Groups [legal name to be confirmed]", tradeName: "Ambika Groups",
     address: "[Registered address to be confirmed], Lucknow, Uttar Pradesh", stateCode: "09",
     gstin: "[GSTIN to be confirmed]", pan: "[PAN to be confirmed]", phone: "[Phone]", email: "[Email]",
     brandColor: "#C62828", gstScheme: "regular", logoPath: null, signaturePath: null, stampPath: null,
   });
-  put(store, "settings", { id: "bank", accounts: [{ bankName: "[Bank to be confirmed]", accountName: "Ambika Group", accountNo: "[Account no.]", ifsc: "[IFSC]", branch: "", upiId: "[UPI ID]" }] });
+  put(store, "settings", { id: "bank", accounts: [{ bankName: "[Bank to be confirmed]", accountName: "Ambika Groups", accountNo: "[Account no.]", ifsc: "[IFSC]", branch: "", upiId: "[UPI ID]" }] });
   put(store, "meta", { id: "demo", anchor, seededAt: now, version: 1 });
   for (const cat of seedCategories()) put(store, "expense_categories", { ...cat, ...auditFields("system", now) });
 

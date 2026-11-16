@@ -5,8 +5,8 @@ import { NO_FLASH_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "Ambika Group CRM", template: "%s · Ambika Group CRM" },
-  description: "Projects, workers, attendance, expenses, billing and accounts for Ambika Group.",
+  title: { default: "Ambika Groups CRM", template: "%s · Ambika Groups CRM" },
+  description: "Projects, workers, attendance, expenses, billing and accounts for Ambika Groups.",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icons/icon-192.png", apple: "/icons/icon-192.png" },
   appleWebApp: { capable: true, title: "Ambika CRM", statusBarStyle: "default" },

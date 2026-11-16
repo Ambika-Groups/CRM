@@ -1,5 +1,5 @@
 /*
- * Ambika Group CRM service worker (spec §3 Mobile: installable PWA that keeps working on slow networks).
+ * Ambika Groups CRM service worker (spec §3 Mobile: installable PWA that keeps working on slow networks).
  * Pages: network first, falling back to the cached copy when offline. Static assets (/_next/static,
  * icons, fonts): cache first, since their file names change with every build.
  * Data never goes through this cache: Firestore's own offline persistence handles it (spec §3.1 rule 11).

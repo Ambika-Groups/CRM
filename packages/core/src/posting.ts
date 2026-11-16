@@ -116,8 +116,10 @@ export function expenseEffect(e: Expense): Effect {
     b.add(`vendor_balances/${e.payeeId}`, "payablePaise", e.amountPaise);
     b.addAll(rollupDocs("finance_rollups", e.projectId, monthKey), "vendorBilledPaise", e.amountPaise);
   }
-  // Generated expenses never move money; the source payment does (D-16).
-  if (e.source === "manual" && paid && e.accountId) {
+  // Generated expenses never move money; the source payment does (D-16). The exceptions are expenses whose source record has no payment of its own
+  // (diesel, a repair or the bank's charges paid straight from an account): those carry the paid-from account and move it here.
+  const paysItself = e.source === "manual" || e.source === "fuel" || e.source === "maintenance" || e.source === "bank_charge";
+  if (paysItself && paid && e.accountId) {
     accountMovement(b, {
       id: `expenses_${e.id}`, accountId: e.accountId, date: e.date, type: "payment", directionSign: -1,
       amountPaise: e.amountPaise, linkedEntity: "expenses", linkedId: e.id, projectId: e.projectId,

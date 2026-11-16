@@ -1,7 +1,7 @@
 // Delta-posting engine tests (decisions D-07, D-08, D-13, D-16, D-20). IDs P-xxx are referenced from
 // docs/prd-traceability.md.
 import { describe, expect, it } from "vitest";
-import { approveWorkerPayment, CategoryTree, MemoryStore, seedCategories, sumCost, sumFinance, type Expense, type WorkerPayment } from "../src";
+import { approveWorkerPayment, CategoryTree, expenseEffect, MemoryStore, seedCategories, sumCost, sumFinance, type Expense, type WorkerPayment } from "../src";
 
 const NOW = "2026-10-25T09:00:00.000Z";
 
@@ -182,5 +182,21 @@ describe("category re-parenting (§7.4)", () => {
     const grand = (t: CategoryTree) => t.roots().reduce((x, r) => x + t.total(r.id, posted), 0);
     expect(grand(moved)).toBe(grand(tree));
     expect(JSON.stringify(s.snapshot().rollups)).toBe(before);
+  });
+});
+
+describe("generated expenses and the paid-from account (D-16)", () => {
+  const base = { id: "x1", projectId: "p1", date: "2026-11-10", monthKey: "2026-11", fy: "2026-27", categoryId: "cat_machinery", amountPaise: 250_000, taxablePaise: 250_000, approvalStatus: "approved", paidStatus: "paid", mode: "cash", accountId: "accCash", isDeleted: false };
+  it("P-40 diesel, a repair and a bank charge have no payment record of their own, so the expense moves the account", () => {
+    for (const source of ["fuel", "maintenance", "bank_charge", "manual"]) {
+      const eff = expenseEffect({ ...base, source } as never);
+      expect(eff.accountTxns).toHaveLength(1);
+      expect(eff.accountTxns[0]).toMatchObject({ accountId: "accCash" });
+    }
+  });
+  it("P-41 a wage, a purchase or machine rent is paid by its own record, so the generated expense moves no money", () => {
+    for (const source of ["wage", "purchase", "machinery_rent"]) {
+      expect(expenseEffect({ ...base, source } as never).accountTxns).toHaveLength(0);
+    }
   });
 });
